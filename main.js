@@ -287,13 +287,14 @@
       <section class="screen" data-ws="3">
         <div class="tile">${win('nvim ~/about.md', '<div id="vim"></div>')}</div>
         <div class="tile">${win('git log --graph --oneline career', '<div id="gitlog"></div>')}</div>
+        <div class="tile">${win('cat ~/testimonials.txt', '<div id="reviews"></div>')}</div>
       </section>
       <section class="screen" data-ws="4">
         <div class="tile">${win('~/contact.sh', '<div id="contact"></div>')}</div>
         <div class="tile">${win('~/msg.sh — write me', '<div id="mail"></div>')}</div>
         <div class="tile">${win('fortune | cowsay', '<pre id="cow" title="click for another fortune"></pre>')}</div>
       </section>`;
-    buildHtop(); buildRanger(); buildVim(); buildGit(); buildContact(); newFortune();
+    buildHtop(); buildRanger(); buildVim(); buildGit(); buildContact(); buildReviews(); newFortune();
     $('#cava').innerHTML = '<i></i>'.repeat(36);
     $('#cow').onclick = newFortune;
     $$('.screen').forEach((s) => $$('.tile', s).forEach((t, i) => {
@@ -741,6 +742,19 @@
   /* git log */
   const notes = (e) => [].concat(e.note || []);
   const orgHTML = (e) => (e.url ? `<a class="accent2" href="${esc(e.url)}" target="_blank" rel="noopener">${esc(e.org)}</a>` : `<span class="accent2">${esc(e.org)}</span>`);
+  const REVIEWS = C.testimonials || [];
+  function buildReviews() {
+    $('#reviews').innerHTML = REVIEWS.length
+      ? REVIEWS.map((r, i) => `
+        <figure class="rv" style="--n:${i}">
+          <blockquote>${esc(r.quote)}</blockquote>
+          <figcaption><span class="rv-av">${esc(r.name.split(' ').map((w) => w[0]).join('').slice(0, 2))}</span>
+            <span><b>${r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.name)}</a>` : esc(r.name)}</b><br><span class="dim">${esc(r.role)}</span><br><span class="rv-rel">${esc(r.relation)}</span></span>
+          </figcaption>
+        </figure>`).join('') + `<div class="dim rv-src">— recommendations from LinkedIn</div>`
+      : '<span class="dim">no testimonials yet.</span>';
+  }
+  const reviewsText = () => REVIEWS.map((r) => `"${r.quote}"\n  — ${r.name}, ${r.role} (${r.relation})`).join('\n\n');
   function buildGit() {
     $('#gitlog').innerHTML = C.experience.map((e, i) => `
       <div class="commit" style="--n:${i}"><span class="graph">*</span> <span class="sha">${hash7(e.role + e.org)}</span> ${i === 0 ? '<span class="ref">(<span class="head">HEAD -&gt; main</span>)</span> ' : ''}<b>${esc(e.role)}</b> <span class="dim">@</span> ${orgHTML(e)}
@@ -914,6 +928,7 @@
     'skills.txt': skillsText,
     'experience.log': gitText,
     'contact.txt': contactText,
+    ...(REVIEWS.length ? { 'testimonials.txt': reviewsText } : {}),
     '.secret': () => SECRET,
     ...(C.resume ? { 'resume.pdf': () => '%PDF-1.7 ... binary garbage. try: resume' } : {}),
   };
@@ -955,6 +970,10 @@
     } },
     experience: { d: 'career, as a git log', f() {
       print(C.experience.map((e, i) => `<span class="warn">* ${hash7(e.role + e.org)}</span> ${i === 0 ? '<span class="accent2">(HEAD -&gt; main)</span> ' : ''}<b>${esc(e.role)}</b> @ ${orgHTML(e)}\n<span class="warn">|</span>   <span class="dim">Date: ${esc(e.date)}</span>\n${notes(e).map((n) => `<span class="warn">|</span>   ${esc(n)}`).join('\n')}`).join('\n') + `\n<span class="warn">* 0000000</span> Initial commit`);
+    } },
+    testimonials: { d: 'what people I worked with say', f() {
+      if (!REVIEWS.length) return print('no testimonials yet.', 'dim');
+      print(REVIEWS.map((r) => `<span class="accent">“</span>${esc(r.quote)}<span class="accent">”</span>\n  <span class="accent2">— ${esc(r.name)}</span> <span class="dim">· ${esc(r.role)} · ${esc(r.relation)}</span>`).join('\n\n'));
     } },
     contact: { d: 'ways to reach me', f() {
       print(C.contact.map((c) => `  <span class="warn">${esc(c.label.padEnd(10))}</span><a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.text)}</a>`).join('\n'));
@@ -1055,7 +1074,7 @@
     hello: { d: '', f() { print(`hey there 👋 — I'm ${esc(C.name.split(' ')[0])}. type ${cmdLink('about')} or ${cmdLink('projects')}.`); } },
     coffee: { d: '', f() { print(esc('      ( (\n       ) )\n    ........\n    |      |]\n    \\      /\n     `----\'\n\nbrewing… ☕ productivity +40%')); } },
   };
-  const ALIASES = { shortcuts: 'keys', keybinds: 'keys', hyprctl: 'settings', config: 'settings', wall: 'wallpaper', swww: 'wallpaper', ll: 'ls -la', la: 'ls -a', vi: 'vim', nvim: 'vim', hi: 'hello', apt: 'pacman', 'apt-get': 'pacman', yay: 'pacman', cls: 'clear', '?': 'help', git: 'experience', top: 'skills', htop: 'skills', email: 'contact', goto: 'ws', screenfetch: 'neofetch', fastfetch: 'neofetch' };
+  const ALIASES = { reviews: 'testimonials', recommendations: 'testimonials', shortcuts: 'keys', keybinds: 'keys', hyprctl: 'settings', config: 'settings', wall: 'wallpaper', swww: 'wallpaper', ll: 'ls -la', la: 'ls -a', vi: 'vim', nvim: 'vim', hi: 'hello', apt: 'pacman', 'apt-get': 'pacman', yay: 'pacman', cls: 'clear', '?': 'help', git: 'experience', top: 'skills', htop: 'skills', email: 'contact', goto: 'ws', screenfetch: 'neofetch', fastfetch: 'neofetch' };
 
   /* ═════════════ easter eggs ═════════════ */
   function confetti(n = 180, x = innerWidth / 2, y = innerHeight / 3) {
