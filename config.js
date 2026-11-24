@@ -6,7 +6,7 @@ window.PORTFOLIO = {
   handle: "sumit",          // shown as the shell user: sumit@portfolio
   hostname: "portfolio",
   role: "Backend Engineer",
-  location: "India",
+  location: "Himachal Pradesh, India",
   editor: "nvim",
   theme: "arctic",          // default for first-time visitors: matrix | amber | vampire | arctic | retro | cyberpunk
   tagline: "Backend engineer building cross-chain infra in Go — 100K+ concurrent requests, 300K+ transactions a day.",
@@ -39,6 +39,11 @@ window.PORTFOLIO = {
     "- 2nd prize, Electrothon 2023 (NIT Hamirpur)",
     "- 2nd prize, Hack It Out @ Technex'23 (IIT BHU, 300+ teams)",
     "- Hacktoberfest 2022 & 2023 (50+ PRs)",
+    "- Passed LinkedIn's Go skill assessment",
+    "",
+    "## Leadership",
+    "- Secretary, ISTE NIT Hamirpur (2023–24); Coordinator (2020–23)",
+    "- Mentored juniors into backend, DevOps and Linux",
     "",
     "## Education",
     "- B.Tech, Civil Engineering — NIT Hamirpur (2020–2024)",
@@ -158,11 +163,38 @@ window.PORTFOLIO = {
         "Top contributor to the Concordium Local Chain GUI (Rust/Tauri)",
       ],
     },
+    {
+      date: "Dec 2020 — Jul 2024", role: "Secretary (prev. Coordinator)", org: "ISTE NIT Hamirpur",
+      note: [
+        "Led the technical society's chapter; Secretary from Jun 2023, Coordinator before that",
+        "Built and hosted Abhedya, the chapter's cryptic hunt (500+ players)",
+        "Mentored juniors — several now ship backend and DevOps work in industry",
+      ],
+    },
     { date: "2020 — 2024", role: "B.Tech, Civil Engineering", org: "NIT Hamirpur", note: [
         "ETHIndia 2024 winner · Electrothon & Hack It Out runner-up · Hacktoberfest ×2",
         "Built ArchFire (Arch-based distro), Abhedya and the Prodyogiki'23 fest site",
         "Active in the GNU/Linux Users Group and ISTE chapters",
       ] },
+  ],
+
+  // Shown on the about workspace and via `testimonials`. Quotes are from LinkedIn recommendations.
+  testimonials: [
+    {
+      name: "Mehul Ambastha", role: "Backend @ Stimuler AI", relation: "reported to Sumit directly",
+      url: "https://www.linkedin.com/in/sumit-dhiman-20bce091/details/recommendations/",
+      quote: "One of the finest engineers you will ever meet in your life. He crosses all domains, and his mastery ranges from software development, DevOps to Hardware Programming and a love for machines. Sumit is an inspiration for tens of juniors, who had the opportunity of working under him. … He constantly pushed those around him to be better and better … Absolute gem of a person.",
+    },
+    {
+      name: "Harsh Mittal", role: "Software Engineer, ex-Euclid Protocol", relation: "worked on the same team",
+      url: "https://www.linkedin.com/in/sumit-dhiman-20bce091/details/recommendations/",
+      quote: "I can confidently say that he is an exceptional backend developer. His dedication to his work is unparalleled, consistently delivering high-quality results in record time. Sumit's problem-solving skills and attention to detail set him apart … I highly recommend him for any challenging backend development role.",
+    },
+    {
+      name: "Nikhil Mishra", role: "Full-stack blockchain developer, Euclid Protocol", relation: "worked on the same team",
+      url: "https://www.linkedin.com/in/sumit-dhiman-20bce091/details/recommendations/",
+      quote: "Awesome backend developer with the great expertise in the field.. will surely recommend [Sumit] if you are looking [for] a backend developer who has worked in the field of web2 as well as web3",
+    },
   ],
 
   contact: [
