@@ -118,6 +118,7 @@
       }
     });
     $('#st-close').onclick = closeSettings;
+    body.addEventListener('scroll', () => $('.st-head').classList.toggle('scrolled', body.scrollTop > 2), { passive: true });
   }
   const markTheme = () => $$('.sw').forEach((b) => b.classList.toggle('active', b.dataset.themePick === html.dataset.theme));
   const settingsOpen = () => $('#settings').classList.contains('open');
