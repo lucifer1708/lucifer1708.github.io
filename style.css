@@ -164,13 +164,21 @@ button.pill:hover { transform: translateY(-1px) scale(1.05); color: var(--fg); b
 .screen.pop .tile { animation: popin .7s var(--ease) both; animation-delay: calc(var(--i, 0) * 90ms + .25s); }
 @keyframes popin { from { opacity: 0; transform: scale(.82) translateY(20px); filter: blur(6px); } }
 
-.screen[data-ws="1"] { grid-template-columns: 1.65fr 1fr; grid-template-rows: auto 1fr 96px; grid-template-areas: "term fetch" "term top" "term cava"; }
-.t-term { grid-area: term; } .t-fetch { grid-area: fetch; } .t-top { grid-area: top; } .t-cava { grid-area: cava; }
-.screen[data-ws="2"] { grid-template: 1fr / 1fr; }
-.screen[data-ws="3"] { grid-template-columns: 1.25fr 1fr; }
-.screen[data-ws="4"] { grid-template-columns: 1.2fr 1fr; }
+/* slots: each tile sits in area s<n>; dragging one window onto another swaps their slots */
+.screen[data-ws="1"] { grid-template-columns: 1.65fr 1fr; grid-template-rows: 1.2fr 1fr 96px; grid-template-areas: "s0 s1" "s0 s2" "s0 s3"; }
+.screen[data-ws="2"] { grid-template: "s0" 1fr / 1fr; }
+.screen[data-ws="3"] { grid-template: "s0 s1" 1fr / 1.25fr 1fr; }
+.screen[data-ws="4"] { grid-template: "s0 s1" 1fr / 1.2fr 1fr; }
 
-.tile { min-height: 0; min-width: 0; display: flex; position: relative; }
+.tile { min-height: 0; min-width: 0; display: flex; position: relative; grid-area: var(--slot); }
+.ph {   /* drop target preview while dragging */
+  grid-area: var(--slot); pointer-events: none; border-radius: var(--radius);
+  border: 2px dashed color-mix(in srgb, var(--accent) 70%, transparent);
+  background: repeating-linear-gradient(-45deg, color-mix(in srgb, var(--accent) 7%, transparent) 0 12px, transparent 12px 24px);
+  box-shadow: inset 0 0 50px var(--glow);
+  animation: phIn .35s var(--ease) both;
+}
+@keyframes phIn { from { opacity: 0; transform: scale(.94); } }
 .screen.has-fs .tile:not(.fs) { visibility: hidden; }
 .tile.fs { position: absolute; inset: 0; grid-area: 1 / 1 / -1 / -1; left: 0 !important; top: 0 !important; width: auto !important; height: auto !important; z-index: 1000 !important; }
 

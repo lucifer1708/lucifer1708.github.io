@@ -137,7 +137,7 @@
 
   /* ═════════════ desktop building ═════════════ */
   const win = (title, body, cls = '') =>
-    `<div class="win ${cls}"><div class="win-bar" title="drag to move · double-click to fullscreen / re-tile"><span class="dots"><i></i><i></i><i></i></span><span class="win-name">${esc(title)}</span><span class="fs-hint">drag · dbl-click ⛶</span></div><div class="win-body">${body}</div><span class="rz" title="drag to resize"></span></div>`;
+    `<div class="win ${cls}"><div class="win-bar" title="drag onto another window to swap · Shift+drag to float · double-click to fullscreen / re-tile"><span class="dots"><i></i><i></i><i></i></span><span class="win-name">${esc(title)}</span><span class="fs-hint">drag swap · ⇧drag float · dbl-click ⛶</span></div><div class="win-body">${body}</div><span class="rz" title="drag to resize"></span></div>`;
 
   const TUX = [
     '        .--.',
@@ -198,6 +198,7 @@
     $('#cow').onclick = newFortune;
     $$('.screen').forEach((s) => $$('.tile', s).forEach((t, i) => {
       t.style.setProperty('--i', i);
+      setSlot(t, i);
       t.addEventListener('pointerenter', () => focusWin(t));   // focus follows mouse
       t.addEventListener('pointerdown', () => focusWin(t));
       $('.win-bar', t).addEventListener('dblclick', () => (t.classList.contains('floating') ? layoutTransition(s, () => unfloat(t)) : toggleFs(t)));
@@ -254,15 +255,34 @@
     layoutTransition(scr, () => fl.forEach(unfloat));
     return true;
   }
+  const setSlot = (t, i) => { t.dataset.slot = i; t.style.setProperty('--slot', 's' + i); };
+  const rects = (els) => new Map(els.map((el) => [el, el.getBoundingClientRect()]));
+  function flip(before, duration = 450) {   // animate elements from their old rects to their new layout
+    for (const [el, a] of before) {
+      const b = el.getBoundingClientRect();
+      if (!a.width || !b.width) continue;
+      const dx = a.left - b.left, dy = a.top - b.top, sx = a.width / b.width, sy = a.height / b.height;
+      if (Math.abs(dx) < 1 && Math.abs(dy) < 1 && Math.abs(sx - 1) < 0.01 && Math.abs(sy - 1) < 0.01) continue;
+      el.animate(
+        [{ transformOrigin: 'top left', transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})` }, { transformOrigin: 'top left', transform: 'none' }],
+        { duration, easing: 'cubic-bezier(.05,.9,.1,1.05)' });
+    }
+  }
   function bindDrag(tile) {
     const start = (e, mode) => {
       if (e.button !== 0 || !canFloat() || tile.classList.contains('fs')) return;
+      if (mode === 'move' && e.shiftKey) mode = 'float';   // Shift+drag = free floating
       e.preventDefault();
       focusWin(tile); raise(tile);
       const scr = tile.closest('.screen'), sx = e.clientX, sy = e.clientY;
-      let began = false, ox, oy, ow, oh, lastX = sx, vx = 0;
+      let began = false, ox, oy, ow, oh, lastX = sx, vx = 0, ph = null;
+      const others = () => $$('.tile', scr).filter((t) => t !== tile && !t.classList.contains('floating'));
+      const hit = (ev) => {   // hit-test against layout boxes (ignores in-flight FLIP transforms)
+        const sr = scr.getBoundingClientRect(), x = ev.clientX - sr.left, y = ev.clientY - sr.top;
+        return others().find((t) => x > t.offsetLeft && x < t.offsetLeft + t.offsetWidth && y > t.offsetTop && y < t.offsetTop + t.offsetHeight);
+      };
       const wobble = () => {   // velocity-based tilt that settles when the cursor stops
-        if (!began || !tile.classList.contains('dragging')) return;
+        if (!tile.classList.contains('dragging')) return;
         vx *= 0.85;
         tile.style.setProperty('--tilt', Math.max(-7, Math.min(7, vx)).toFixed(2) + 'deg');
         requestAnimationFrame(wobble);
@@ -273,25 +293,46 @@
           if (Math.hypot(dx, dy) < 4) return;
           began = true; floatTile(tile); raise(tile);
           ox = parseFloat(tile.style.left); oy = parseFloat(tile.style.top); ow = tile.offsetWidth; oh = tile.offsetHeight;
-          tile.classList.add(mode === 'move' ? 'dragging' : 'resizing');
-          document.body.classList.add('wm-' + mode);
-          if (mode === 'move') requestAnimationFrame(wobble);
+          tile.classList.add(mode === 'resize' ? 'resizing' : 'dragging');
+          document.body.classList.add(mode === 'resize' ? 'wm-resize' : 'wm-move');
+          if (mode !== 'resize') requestAnimationFrame(wobble);
+          if (mode === 'move') {
+            ph = document.createElement('div');
+            ph.className = 'ph';
+            ph.style.setProperty('--slot', 's' + tile.dataset.slot);
+            scr.appendChild(ph);
+          }
         }
         const sw = scr.clientWidth, sh = scr.clientHeight;
-        if (mode === 'move') {
-          tile.style.left = Math.min(Math.max(ox + dx, 80 - ow), sw - 80) + 'px';
-          tile.style.top = Math.min(Math.max(oy + dy, 0), sh - 30) + 'px';
-          vx += (ev.clientX - lastX) * 0.25; lastX = ev.clientX;
-        } else {
+        if (mode === 'resize') {
           tile.style.width = Math.max(240, Math.min(ow + dx, sw - ox)) + 'px';
           tile.style.height = Math.max(120, Math.min(oh + dy, sh - oy)) + 'px';
+          return;
         }
+        tile.style.left = Math.min(Math.max(ox + dx, 80 - ow), sw - 80) + 'px';
+        tile.style.top = Math.min(Math.max(oy + dy, 0), sh - 30) + 'px';
+        vx += (ev.clientX - lastX) * 0.25; lastX = ev.clientX;
+        if (mode !== 'move') return;
+        const target = hit(ev);
+        if (!target) return;
+        const before = rects([...others(), ph]);
+        const a = tile.dataset.slot, b = target.dataset.slot;
+        setSlot(target, a); setSlot(tile, b);
+        ph.style.setProperty('--slot', 's' + b);
+        flip(before);
       };
       const up = () => {
         removeEventListener('pointermove', move); removeEventListener('pointerup', up); removeEventListener('pointercancel', up);
         tile.classList.remove('dragging', 'resizing');
         tile.style.setProperty('--tilt', '0deg');
         document.body.classList.remove('wm-move', 'wm-resize');
+        if (!began || mode !== 'move') return;
+        const before = rects([tile]);
+        unfloat(tile);
+        ph.remove();
+        tile.style.zIndex = ++zTop;   // stay above neighbours while it flies home
+        flip(before, 550);
+        setTimeout(() => { if (!tile.classList.contains('floating')) tile.style.zIndex = ''; }, 600);
       };
       addEventListener('pointermove', move); addEventListener('pointerup', up); addEventListener('pointercancel', up);
     };
@@ -602,7 +643,7 @@
   const CMDS = {
     help: { d: 'list available commands', f() {
       const rows = Object.entries(CMDS).filter(([, c]) => c.d).map(([k, c]) => `  ${cmdLink(k)}${' '.repeat(Math.max(1, 12 - k.length))}<span class="dim">${esc(c.d)}</span>`);
-      print(`<b>Available commands</b> <span class="dim">(click or type)</span>\n${rows.join('\n')}\n\n<span class="dim">Tab autocompletes · ↑/↓ history · Ctrl+L clear · Alt+1..4 / Alt+←→ workspaces · Alt+Space launcher · Alt+F fullscreen · drag title bars to float, Alt+T re-tile · there are hidden commands 👀</span>`);
+      print(`<b>Available commands</b> <span class="dim">(click or type)</span>\n${rows.join('\n')}\n\n<span class="dim">Tab autocompletes · ↑/↓ history · Ctrl+L clear · Alt+1..4 / Alt+←→ workspaces · Alt+Space launcher · Alt+F fullscreen · drag a title bar onto another window to swap, Shift+drag to float, Alt+T re-tile · there are hidden commands 👀</span>`);
     } },
     about: { d: 'who is this person', f() { CMDS.cat.f(['~/about.md']); } },
     whoami: { d: 'print effective user', f() { print(`${esc(USER)}  <span class="dim"># ${esc(C.name)} — ${esc(C.role)}, ${esc(C.location)}</span>`); } },
@@ -936,7 +977,7 @@ Call Trace:
     tickBar(); setInterval(tickBar, 1000);
     setTimeout(tickHtop, 900); setInterval(tickHtop, 1800);
     setInterval(tickCava, 95);
-    setTimeout(() => notify(`Welcome, guest 👋`, `<b>Alt+Space</b> / <b>Ctrl+K</b> launcher · <b>Alt+1..4</b> workspaces · <b>drag</b> title bars to move windows · <b>dbl-click</b> fullscreen · <b>Alt+T</b> re-tile`, 7000), 1400);
+    setTimeout(() => notify(`Welcome, guest 👋`, `<b>Alt+Space</b> / <b>Ctrl+K</b> launcher · <b>Alt+1..4</b> workspaces · <b>drag</b> a window onto another to swap · <b>Shift+drag</b> float · <b>dbl-click</b> fullscreen · <b>Alt+T</b> re-tile`, 7000), 1400);
 
     print(`<span class="big">${esc(bigText(C.name))}</span>`);
     print(`Welcome to <b class="accent">PortfolioOS 1.0 LTS</b> (GNU/Linux ${KERNEL} x86_64)
