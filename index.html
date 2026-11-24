@@ -28,10 +28,11 @@
       </div>
       <div class="pill" id="bar-title"></div>
       <div class="bar-right">
-        <span class="pill" id="cpu"></span>
-        <span class="pill" id="mem"></span>
-        <span class="pill hide-sm">⇅ <b>eth0</b></span>
-        <span class="pill" id="clock"></span>
+        <span class="pill" id="cpu" title="CPU load (very real, definitely not Math.random)"></span>
+        <span class="pill" id="mem" title="memory used by 47 open browser tabs"></span>
+        <span class="pill hide-sm" title="connected · ping 1ms to localhost">⇅ <b>eth0</b></span>
+        <span class="pill" id="clock" title="your local time"></span>
+        <button class="pill" id="keys-btn" title="keybind cheatsheet (?)">?</button>
         <button class="pill" id="st-btn" title="settings (Alt+S)">⚙</button>
         <button class="pill" id="wp-next" title="next wallpaper (Alt+W)">🖼</button>
         <button class="pill pw" id="power" title="reboot">⏻</button>
@@ -47,6 +48,14 @@
       <div class="l-foot dim">↑↓ navigate · enter run · esc close</div>
     </div>
   </div>
+  <div id="keys" hidden>
+    <div class="k-box" role="dialog" aria-label="keybinds">
+      <div class="l-in"><span class="accent">⌨</span> keybinds <span class="dim">— hyprland.conf excerpt</span></div>
+      <div id="k-list"></div>
+      <div class="l-foot dim">press any key or click to close</div>
+    </div>
+  </div>
+  <div id="tip" role="tooltip"></div>
   <aside id="settings" hidden aria-label="settings">
     <div class="st-head"><span class="accent">⚙</span> hyprctl <span class="dim">— settings</span><button class="pill" id="st-close" title="close (Esc)">✕</button></div>
     <div class="st-body" id="st-body"></div>

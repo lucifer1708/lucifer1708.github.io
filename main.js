@@ -64,6 +64,7 @@
     } },
     { k: 'spin', label: 'animated borders', def: true, apply: (v) => html.classList.toggle('no-spin', !v) },
     { k: 'ffm', label: 'focus follows mouse', def: true },
+    { k: 'tips', label: 'tooltips & tips', def: true },
   ];
   const SPECS = [...SLIDERS, ...TOGGLES];
   const S = Object.fromEntries(SPECS.map((s) => [s.k, s.def]));
@@ -263,7 +264,7 @@
   }
 
   function buildDesktop() {
-    $('#workspaces').innerHTML = WS.map((w) => `<button data-ws="${w.n}" title="${w.name} (Alt+${w.n})">${w.n}<em>${w.name}</em></button>`).join('');
+    $('#workspaces').innerHTML = WS.map((w) => `<button data-ws="${w.n}" title="Workspace ${w.n} · ${w.name} — press ${w.n} or Alt+${w.n} · Alt+←/→ cycles">${w.n}<em>${w.name}</em></button>`).join('');
     $('#wall .wm-name').textContent = C.handle;
     $('#launch-btn').onclick = openLauncher;
     $('#power').onclick = () => runInTerm('reboot');
@@ -517,6 +518,82 @@
     return w;
   }
 
+  /* ═════════════ tooltips · keybind cheatsheet · tips ═════════════ */
+  const KBD_RE = /(Alt\+[^\s·,)/]+(?:\/[←→])?|Ctrl\+[^\s·,)/]+|Shift\+[^\s·,)]+|⌘K|Esc|Enter|Tab)/g;
+  const kbd = (text) => esc(text).replace(KBD_RE, '<kbd>$1</kbd>');
+  function bindTooltips() {
+    const tip = $('#tip');
+    let cur = null, timer = 0;
+    const hide = () => { clearTimeout(timer); tip.classList.remove('on'); cur = null; };
+    const show = (el) => {
+      if (!S.tips || !el.isConnected) return;
+      tip.innerHTML = kbd(el.dataset.tip);
+      tip.classList.add('on');
+      const r = el.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight;
+      const below = r.top < 140;
+      tip.classList.toggle('below', below);
+      tip.style.left = Math.max(8, Math.min(r.left + r.width / 2 - tw / 2, innerWidth - tw - 8)) + 'px';
+      tip.style.top = (below ? r.bottom + 10 : r.top - th - 10) + 'px';
+    };
+    document.addEventListener('pointerover', (e) => {
+      if (e.pointerType === 'touch' || document.body.classList.contains('wm-move')) return;
+      const el = e.target.closest('[title], [data-tip]');
+      if (el === cur) return;
+      hide();
+      if (!el) return;
+      if (el.hasAttribute('title')) { el.dataset.tip = el.getAttribute('title'); el.removeAttribute('title'); }  // swap native tooltips for ours
+      cur = el;
+      timer = setTimeout(() => show(el), 260);
+    });
+    ['pointerdown', 'wheel', 'keydown'].forEach((ev) => addEventListener(ev, hide, { passive: true }));
+  }
+
+  const KEYS = [
+    ['1 … 4  /  Alt+1 … 4', 'jump between workspaces (pages)'],
+    ['Alt+←/→', 'previous / next workspace'],
+    ['Alt+Space · ⌘K · /', 'launcher — search everything'],
+    ['Alt+S', 'settings: blur, corners, gaps, theme'],
+    ['Alt+W', 'next wallhaven wallpaper'],
+    ['drag title bar', 'drop onto another window to swap'],
+    ['Shift+drag', 'float a window anywhere'],
+    ['drag corner', 'resize (floats the window)'],
+    ['Alt+F · dbl-click title', 'fullscreen window'],
+    ['Alt+T', 're-tile floating windows'],
+    ['j / k · Enter', 'browse & open projects (workspace 2)'],
+    ['Tab · ↑ ↓ · Ctrl+L', 'terminal: complete · history · clear'],
+    ['Esc', 'close panels / leave fullscreen'],
+    ['?', 'this cheatsheet'],
+  ];
+  function openKeys() {
+    const K = $('#keys');
+    $('#k-list').innerHTML = KEYS.map(([k, d], i) => `<div class="k-row" style="--i:${i}"><span>${kbd(k).replace(/(^|[ ·/])([1-4jk?/]|…)(?=$|[ ·/])/g, '$1<kbd>$2</kbd>')}</span><span class="dim">${esc(d)}</span></div>`).join('');
+    K.hidden = false;
+    requestAnimationFrame(() => K.classList.add('open'));
+  }
+  function closeKeys() {
+    const K = $('#keys');
+    K.classList.remove('open');
+    setTimeout(() => { if (!K.classList.contains('open')) K.hidden = true; }, 300);
+  }
+  const keysOpen = () => $('#keys').classList.contains('open');
+
+  const TIPS = [
+    'Press <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd> (or <kbd>Alt</kbd>+number) to switch between pages.',
+    'Drag a window by its title bar onto another window to rearrange the tiling.',
+    'Open ⚙ settings (<kbd>Alt+S</kbd>) to change blur, corner radius, gaps and theme.',
+    'Press <kbd>?</kbd> any time for the full keybind cheatsheet.',
+    'Hit <kbd>Alt+Space</kbd> for the launcher — it searches projects, themes and commands.',
+    'Hover things — most of the UI has tooltips.',
+    'There are hidden commands. <span class="dim">cat .secret</span> is a good start.',
+  ];
+  function scheduleTips() {
+    if (!S.tips) return;
+    const first = !localStorage.getItem('seenTips');
+    localStorage.setItem('seenTips', '1');
+    const list = first ? TIPS.slice(0, 4) : [TIPS[(Math.random() * TIPS.length) | 0]];
+    list.forEach((t, i) => setTimeout(() => notify(`💡 Tip ${first ? `${i + 1}/${list.length}` : ''}`, t, 6500), 9000 + i * 8000));
+  }
+
   /* mako-style notifications */
   function notify(title, body = '', ms = 4000) {
     const box = $('#notify'); if (!box) return;
@@ -538,6 +615,7 @@
     ...C.projects.map((p) => ({ icon: '◆', label: `Open ${p.name}`, hint: 'project', run: () => { openProject(p); notify(`Launching ${p.name}`, esc(p.url || p.repo || 'no public link')); } })),
     ...THEMES.map((t) => ({ icon: '◐', label: `Theme: ${t}`, hint: 'theme', run: () => applyTheme(t) })),
     { icon: '⛶', label: 'Toggle fullscreen (focused window)', hint: 'Alt+F', run: () => toggleFs(focusedTile()) },
+    { icon: '⌨', label: 'Keybind cheatsheet', hint: '?', run: () => openKeys() },
     { icon: '⚙', label: 'Settings — blur, radius, gaps, opacity…', hint: 'Alt+S', run: () => openSettings() },
     { icon: '🖼', label: 'Next wallpaper (wallhaven)', hint: 'Alt+W', run: () => setWallpaper(undefined, true) },
     { icon: '▤', label: 'Re-tile floating windows', hint: 'Alt+T', run: () => retile() || notify('Nothing to re-tile', 'drag a window by its title bar to float it.', 2500) },
@@ -611,7 +689,7 @@
   /* ranger */
   let rSel = 0;
   function buildRanger() {
-    $('#r-list').innerHTML = C.projects.map((p, i) => `<li data-i="${i}">▸ ${esc(p.slug)}/</li>`).join('');
+    $('#r-list').innerHTML = C.projects.map((p, i) => `<li data-i="${i}" title="click again or Enter to open · j/k to move">▸ ${esc(p.slug)}/</li>`).join('');
     $('#r-list').onclick = (e) => {
       const li = e.target.closest('li'); if (!li) return;
       +li.dataset.i === rSel ? openProject(C.projects[rSel]) : selectProject(+li.dataset.i);
@@ -915,6 +993,7 @@
       setSetting('crt', !S.crt);
       print(`crt: ${S.crt ? 'on — welcome back to 1985' : 'off — welcome to the future'}`);
     } },
+    keys: { d: 'keybind cheatsheet', f() { openKeys(); } },
     settings: { d: 'open the settings panel (blur, radius, gaps…)', f() { openSettings(); print('hyprctl: opening settings panel → <span class="dim">Alt+S toggles it</span>'); } },
     matrix: { d: 'follow the white rabbit', f() { matrix(); } },
     hack: { d: 'hack the mainframe', async f() { await hack(); } },
@@ -960,7 +1039,7 @@
     hello: { d: '', f() { print(`hey there 👋 — I'm ${esc(C.name.split(' ')[0])}. type ${cmdLink('about')} or ${cmdLink('projects')}.`); } },
     coffee: { d: '', f() { print(esc('      ( (\n       ) )\n    ........\n    |      |]\n    \\      /\n     `----\'\n\nbrewing… ☕ productivity +40%')); } },
   };
-  const ALIASES = { hyprctl: 'settings', config: 'settings', wall: 'wallpaper', swww: 'wallpaper', ll: 'ls -la', la: 'ls -a', vi: 'vim', nvim: 'vim', hi: 'hello', apt: 'pacman', 'apt-get': 'pacman', yay: 'pacman', cls: 'clear', '?': 'help', git: 'experience', top: 'skills', htop: 'skills', email: 'contact', goto: 'ws', screenfetch: 'neofetch', fastfetch: 'neofetch' };
+  const ALIASES = { shortcuts: 'keys', keybinds: 'keys', hyprctl: 'settings', config: 'settings', wall: 'wallpaper', swww: 'wallpaper', ll: 'ls -la', la: 'ls -a', vi: 'vim', nvim: 'vim', hi: 'hello', apt: 'pacman', 'apt-get': 'pacman', yay: 'pacman', cls: 'clear', '?': 'help', git: 'experience', top: 'skills', htop: 'skills', email: 'contact', goto: 'ws', screenfetch: 'neofetch', fastfetch: 'neofetch' };
 
   async function run(raw, echo = true) {
     if (echo) print(`${promptHTML()} ${esc(raw)}`);
@@ -1140,10 +1219,12 @@ Call Trace:
       if (e.altKey && e.code === 'KeyW') { e.preventDefault(); setWallpaper(undefined, true); return; }
       if (e.altKey && e.code === 'KeyS') { e.preventDefault(); toggleSettings(); return; }
       if (e.key === 'Escape' && settingsOpen()) { closeSettings(); return; }
+      if (keysOpen()) { e.preventDefault(); closeKeys(); return; }
       if (e.altKey && (e.code === 'ArrowRight' || e.code === 'ArrowLeft')) { e.preventDefault(); gotoWs(((curWs - 1 + (e.code === 'ArrowRight' ? 1 : -1) + WS.length) % WS.length) + 1); return; }
       if (e.key === 'Escape' && $('.screen.active .tile.fs')) { toggleFs($('.screen.active .tile.fs')); return; }
       const ae = document.activeElement;
       if (ae === inp() || ae?.matches?.('input, textarea, select, [contenteditable]')) return;
+      if (e.key === '?') { e.preventDefault(); openKeys(); return; }
       if (e.key === '/') { e.preventDefault(); openLauncher(); return; }
       if (/^[1-4]$/.test(e.key)) { gotoWs(+e.key); return; }
       if (curWs === 2) {
@@ -1177,19 +1258,23 @@ Call Trace:
   async function startDesktop() {
     buildDesktop();
     $('#desktop').hidden = false;
-    setPrompt(); bindTerm(); bindGlobal(); bindLauncher();
+    setPrompt(); bindTerm(); bindGlobal(); bindLauncher(); bindTooltips();
+    $('#keys').addEventListener('pointerdown', closeKeys);
+    $('#keys-btn').onclick = openKeys;
+    scheduleTips();
     const fromHash = WS.find((w) => '#' + w.name === location.hash);
     gotoWs(fromHash ? fromHash.n : 1, true);
     tickBar(); setInterval(tickBar, 1000);
     setTimeout(tickHtop, 900); setInterval(tickHtop, 1800);
     setInterval(tickCava, 95);
-    setTimeout(() => notify(`Welcome, guest 👋`, `<b>Alt+Space</b> / <b>Ctrl+K</b> launcher · <b>Alt+1..4</b> workspaces · <b>drag</b> a window onto another to swap · <b>Shift+drag</b> float · <b>dbl-click</b> fullscreen · <b>Alt+T</b> re-tile`, 7000), 1400);
+    setTimeout(() => notify(`Welcome, guest 👋`, `press <kbd>1</kbd>–<kbd>4</kbd> to switch pages · <kbd>Alt+Space</kbd> launcher · <kbd>?</kbd> all keybinds · drag windows onto each other to swap`, 7000), 1400);
 
     print(`<span class="big">${esc(bigText(C.name))}</span>`);
     print(`Welcome to <b class="accent">PortfolioOS 1.0 LTS</b> (GNU/Linux ${KERNEL} x86_64)
 
  <span class="accent">*</span> ${esc(C.role)} · ${esc(C.location)}
  <span class="accent">*</span> ${esc(C.tagline)}
+ <span class="accent">*</span> Pages: press <b>1</b>–<b>4</b> (or Alt+1–4) · <b>?</b> shows every keybind · hover anything for hints
  <span class="accent">*</span> Quick start: ${cmdLink('about')} ${cmdLink('projects')} ${cmdLink('skills')} ${cmdLink('experience')} ${cmdLink('contact')} ${cmdLink('theme')}
 `);
     await sleep(700);
