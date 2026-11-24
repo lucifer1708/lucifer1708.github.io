@@ -32,6 +32,7 @@
         <span class="pill" id="mem"></span>
         <span class="pill hide-sm">⇅ <b>eth0</b></span>
         <span class="pill" id="clock"></span>
+        <button class="pill" id="st-btn" title="settings (Alt+S)">⚙</button>
         <button class="pill" id="wp-next" title="next wallpaper (Alt+W)">🖼</button>
         <button class="pill pw" id="power" title="reboot">⏻</button>
       </div>
@@ -46,6 +47,10 @@
       <div class="l-foot dim">↑↓ navigate · enter run · esc close</div>
     </div>
   </div>
+  <aside id="settings" hidden aria-label="settings">
+    <div class="st-head"><span class="accent">⚙</span> hyprctl <span class="dim">— settings</span><button class="pill" id="st-close" title="close (Esc)">✕</button></div>
+    <div class="st-body" id="st-body"></div>
+  </aside>
   <div id="notify" aria-live="polite"></div>
 
   <noscript><pre style="color:#39ff14;padding:2rem">kernel panic: JavaScript not found. Enable JS to boot.</pre></noscript>

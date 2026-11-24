@@ -34,10 +34,102 @@
     document.documentElement.dataset.theme = t;
     localStorage.setItem('theme', t);
     $$('.theme-name').forEach((e) => (e.textContent = t));
+    $$('.sw').forEach((b) => b.classList.toggle('active', b.dataset.themePick === t));
     return true;
   };
   setTheme(localStorage.getItem('theme') || 'matrix');
-  if (localStorage.getItem('crt') === 'off') document.documentElement.classList.add('no-crt');
+
+  /* ═════════════ settings (hyprctl-style panel, persisted) ═════════════ */
+  const html = document.documentElement, rootStyle = html.style;
+  const THEME_SWATCH = {
+    matrix: ['#39ff14', '#00e5ff'], amber: ['#ffb000', '#ff4d00'], vampire: ['#bd93f9', '#ff79c6'],
+    arctic: ['#88c0d0', '#b48ead'], retro: ['#b8bb26', '#fe8019'], cyberpunk: ['#ff2a6d', '#05d9e8'],
+  };
+  const SLIDERS = [
+    { k: 'blur', label: 'window blur', min: 0, max: 40, step: 1, unit: 'px', def: 16, css: '--blur' },
+    { k: 'opacity', label: 'window opacity', min: 15, max: 100, step: 1, unit: '%', def: 78, css: '--win-op' },
+    { k: 'radius', label: 'corner radius', min: 0, max: 28, step: 1, unit: 'px', def: 12, css: '--radius' },
+    { k: 'gap', label: 'gaps', min: 0, max: 32, step: 1, unit: 'px', def: 12, css: '--gap' },
+    { k: 'border', label: 'border size', min: 0, max: 6, step: 1, unit: 'px', def: 2, css: '--bw' },
+    { k: 'font', label: 'font size', min: 11, max: 17, step: 1, unit: 'px', def: 13, css: '--fs' },
+    { k: 'speed', label: 'animation speed', min: 0.25, max: 3, step: 0.25, unit: '×', def: 1, apply: (v) => rootStyle.setProperty('--dur', (1 / v).toFixed(3)) },
+    { k: 'dim', label: 'wallpaper dim', min: 0, max: 100, step: 1, unit: '%', def: 72, apply: (v) => { rootStyle.setProperty('--scrim-a', v * 0.42 + '%'); rootStyle.setProperty('--scrim-b', v + '%'); } },
+    { k: 'wpblur', label: 'wallpaper blur', min: 0, max: 30, step: 1, unit: 'px', def: 0, css: '--wp-blur' },
+  ];
+  const TOGGLES = [
+    { k: 'crt', label: 'CRT scanlines', def: localStorage.getItem('crt') !== 'off', apply: (v) => html.classList.toggle('no-crt', !v) },
+    { k: 'wall', label: 'wallhaven wallpaper', def: true, apply: (v, init) => {
+      if (!v) { $$('#wall .wp').forEach((x) => x.remove()); html.classList.remove('has-wall'); }
+      else if (!init) setWallpaper();
+    } },
+    { k: 'spin', label: 'animated borders', def: true, apply: (v) => html.classList.toggle('no-spin', !v) },
+    { k: 'ffm', label: 'focus follows mouse', def: true },
+  ];
+  const SPECS = [...SLIDERS, ...TOGGLES];
+  const S = Object.fromEntries(SPECS.map((s) => [s.k, s.def]));
+  try { Object.assign(S, JSON.parse(localStorage.getItem('settings') || '{}')); } catch { /* corrupt → defaults */ }
+  const dur = () => 1 / S.speed;
+  const fmt = (s, v) => (s.unit === '×' ? v.toFixed(2).replace(/0$/, '') + '×' : v + s.unit);
+  function applySetting(k, init = false) {
+    const s = SPECS.find((x) => x.k === k), v = S[k];
+    if (s.css) rootStyle.setProperty(s.css, v + s.unit);
+    s.apply?.(v, init);
+    const inp = document.querySelector(`#st-body [data-k="${k}"]`);
+    if (!inp) return;
+    if (inp.type === 'checkbox') inp.checked = v;
+    else { inp.value = v; inp.style.setProperty('--p', ((v - s.min) / (s.max - s.min)) * 100 + '%'); $(`#v-${k}`).textContent = fmt(s, v); }
+  }
+  function setSetting(k, v) {
+    S[k] = v;
+    localStorage.setItem('settings', JSON.stringify(S));
+    applySetting(k);
+  }
+  SPECS.forEach((s) => applySetting(s.k, true));
+
+  function buildSettings() {
+    $('#st-body').innerHTML = `
+      <div class="st-sec">theme</div>
+      <div class="st-themes">${THEMES.map((t) => `<button class="sw" data-theme-pick="${t}" style="--a:${THEME_SWATCH[t][0]};--b:${THEME_SWATCH[t][1]}"><i></i>${t}</button>`).join('')}</div>
+      <div class="st-sec">decoration</div>
+      ${SLIDERS.map((s) => `<label class="st-row"><span>${s.label}</span><b class="st-val" id="v-${s.k}"></b><input type="range" min="${s.min}" max="${s.max}" step="${s.step}" data-k="${s.k}"></label>`).join('')}
+      <div class="st-sec">misc</div>
+      ${TOGGLES.map((t) => `<label class="st-tog"><span>${t.label}</span><input type="checkbox" data-k="${t.k}"><i></i></label>`).join('')}
+      <div class="st-btns"><button class="pill" id="st-wall">🖼 next wallpaper</button><button class="pill" id="st-reset">↺ reset defaults</button></div>
+      <div class="dim st-foot">saved in this browser · <b>Alt+S</b> or <b>settings</b> toggles this panel</div>`;
+    SPECS.forEach((s) => applySetting(s.k, true));
+    markTheme();
+    const body = $('#st-body');
+    body.addEventListener('input', (e) => {
+      const k = e.target.dataset.k;
+      if (k) setSetting(k, e.target.type === 'checkbox' ? e.target.checked : +e.target.value);
+    });
+    body.addEventListener('click', (e) => {
+      const sw = e.target.closest('[data-theme-pick]');
+      if (sw) applyTheme(sw.dataset.themePick);
+      if (e.target.closest('#st-wall')) setWallpaper(undefined, true);
+      if (e.target.closest('#st-reset')) {
+        SPECS.forEach((s) => (S[s.k] = s.def === undefined ? true : s.def));
+        S.crt = true;
+        localStorage.setItem('settings', JSON.stringify(S));
+        SPECS.forEach((s) => applySetting(s.k));
+        notify('Settings reset', 'back to factory hyprland.conf', 2000);
+      }
+    });
+    $('#st-close').onclick = closeSettings;
+  }
+  const markTheme = () => $$('.sw').forEach((b) => b.classList.toggle('active', b.dataset.themePick === html.dataset.theme));
+  const settingsOpen = () => $('#settings').classList.contains('open');
+  function openSettings() {
+    const el = $('#settings');
+    el.hidden = false;
+    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('open')));
+  }
+  function closeSettings() {
+    const el = $('#settings');
+    el.classList.remove('open');
+    setTimeout(() => { if (!el.classList.contains('open')) el.hidden = true; }, 600 * dur());
+  }
+  const toggleSettings = () => (settingsOpen() ? closeSettings() : openSettings());
 
   /* ═════════════ big ascii font ═════════════ */
   const FONT = {
@@ -176,6 +268,8 @@
     $('#launch-btn').onclick = openLauncher;
     $('#power').onclick = () => runInTerm('reboot');
     $('#wp-next').onclick = () => setWallpaper(undefined, true);
+    $('#st-btn').onclick = toggleSettings;
+    buildSettings();
     $('#workspaces').onclick = (e) => { const b = e.target.closest('button'); if (b) gotoWs(+b.dataset.ws); };
     $('#screens').innerHTML = `
       <section class="screen" data-ws="1">
@@ -201,7 +295,7 @@
     $$('.screen').forEach((s) => $$('.tile', s).forEach((t, i) => {
       t.style.setProperty('--i', i);
       setSlot(t, i);
-      t.addEventListener('pointerenter', () => focusWin(t));   // focus follows mouse
+      t.addEventListener('pointerenter', () => { if (S.ffm) focusWin(t); });   // focus follows mouse
       t.addEventListener('pointerdown', () => focusWin(t));
       $('.win-bar', t).addEventListener('dblclick', () => (t.classList.contains('floating') ? layoutTransition(s, () => unfloat(t)) : toggleFs(t)));
       bindDrag(t);
@@ -321,7 +415,7 @@
         const a = tile.dataset.slot, b = target.dataset.slot;
         setSlot(target, a); setSlot(tile, b);
         ph.style.setProperty('--slot', 's' + b);
-        flip(before);
+        flip(before, 450 * dur());
       };
       const up = () => {
         removeEventListener('pointermove', move); removeEventListener('pointerup', up); removeEventListener('pointercancel', up);
@@ -333,7 +427,7 @@
         unfloat(tile);
         ph.remove();
         tile.style.zIndex = ++zTop;   // stay above neighbours while it flies home
-        flip(before, 550);
+        flip(before, 550 * dur());
         setTimeout(() => { if (!tile.classList.contains('floating')) tile.style.zIndex = ''; }, 600);
       };
       addEventListener('pointermove', move); addEventListener('pointerup', up); addEventListener('pointercancel', up);
@@ -396,7 +490,7 @@
     return WALLS;
   }
   async function setWallpaper(theme = document.documentElement.dataset.theme, announce = false) {
-    if (C.wallpapers === false) return;
+    if (C.wallpapers === false || !S.wall) return;
     const pool = (await loadWalls())[theme] || [];
     if (!pool.length || theme !== document.documentElement.dataset.theme) return;
     let w;
@@ -443,6 +537,7 @@
     ...C.projects.map((p) => ({ icon: '◆', label: `Open ${p.name}`, hint: 'project', run: () => { openProject(p); notify(`Launching ${p.name}`, esc(p.url || p.repo || 'no public link')); } })),
     ...THEMES.map((t) => ({ icon: '◐', label: `Theme: ${t}`, hint: 'theme', run: () => applyTheme(t) })),
     { icon: '⛶', label: 'Toggle fullscreen (focused window)', hint: 'Alt+F', run: () => toggleFs(focusedTile()) },
+    { icon: '⚙', label: 'Settings — blur, radius, gaps, opacity…', hint: 'Alt+S', run: () => openSettings() },
     { icon: '🖼', label: 'Next wallpaper (wallhaven)', hint: 'Alt+W', run: () => setWallpaper(undefined, true) },
     { icon: '▤', label: 'Re-tile floating windows', hint: 'Alt+T', run: () => retile() || notify('Nothing to re-tile', 'drag a window by its title bar to float it.', 2500) },
     { icon: '▦', label: 'Toggle CRT scanlines', hint: 'crt', run: () => runInTerm('crt') },
@@ -621,7 +716,7 @@
       const dir = n > curWs ? 1 : -1;
       $$('.screen').forEach((s) => { s.classList.remove('pop'); s.style.setProperty('--dir', dir); });
       old.classList.remove('active'); old.classList.add('leaving');
-      clearTimeout(old._lt); old._lt = setTimeout(() => old.classList.remove('leaving'), 650);
+      clearTimeout(old._lt); old._lt = setTimeout(() => old.classList.remove('leaving'), 650 * dur());
       next.classList.remove('leaving'); next.classList.add('active');
     }
     curWs = n;
@@ -754,10 +849,10 @@
       print('themes: ' + THEMES.map((t) => t === cur ? `<b class="accent">[${t}]</b>` : cmdLink('theme ' + t, t)).join('  '));
     } },
     crt: { d: 'toggle CRT scanlines', f() {
-      const off = document.documentElement.classList.toggle('no-crt');
-      localStorage.setItem('crt', off ? 'off' : 'on');
-      print(`crt: ${off ? 'off — welcome to the future' : 'on — welcome back to 1985'}`);
+      setSetting('crt', !S.crt);
+      print(`crt: ${S.crt ? 'on — welcome back to 1985' : 'off — welcome to the future'}`);
     } },
+    settings: { d: 'open the settings panel (blur, radius, gaps…)', f() { openSettings(); print('hyprctl: opening settings panel → <span class="dim">Alt+S toggles it</span>'); } },
     matrix: { d: 'follow the white rabbit', f() { matrix(); } },
     hack: { d: 'hack the mainframe', async f() { await hack(); } },
     cowsay: { d: 'cowsay [text]', f(a) { print(esc(cowsay(a.join(' ') || fortune()))); } },
@@ -802,7 +897,7 @@
     hello: { d: '', f() { print(`hey there 👋 — I'm ${esc(C.name.split(' ')[0])}. type ${cmdLink('about')} or ${cmdLink('projects')}.`); } },
     coffee: { d: '', f() { print(esc('      ( (\n       ) )\n    ........\n    |      |]\n    \\      /\n     `----\'\n\nbrewing… ☕ productivity +40%')); } },
   };
-  const ALIASES = { wall: 'wallpaper', swww: 'wallpaper', ll: 'ls -la', la: 'ls -a', vi: 'vim', nvim: 'vim', hi: 'hello', apt: 'pacman', 'apt-get': 'pacman', yay: 'pacman', cls: 'clear', '?': 'help', git: 'experience', top: 'skills', htop: 'skills', email: 'contact', goto: 'ws', screenfetch: 'neofetch', fastfetch: 'neofetch' };
+  const ALIASES = { hyprctl: 'settings', config: 'settings', wall: 'wallpaper', swww: 'wallpaper', ll: 'ls -la', la: 'ls -a', vi: 'vim', nvim: 'vim', hi: 'hello', apt: 'pacman', 'apt-get': 'pacman', yay: 'pacman', cls: 'clear', '?': 'help', git: 'experience', top: 'skills', htop: 'skills', email: 'contact', goto: 'ws', screenfetch: 'neofetch', fastfetch: 'neofetch' };
 
   async function run(raw, echo = true) {
     if (echo) print(`${promptHTML()} ${esc(raw)}`);
@@ -980,6 +1075,8 @@ Call Trace:
       if (e.altKey && e.code === 'KeyF') { e.preventDefault(); toggleFs(focusedTile()); return; }
       if (e.altKey && e.code === 'KeyT') { e.preventDefault(); retile(); return; }
       if (e.altKey && e.code === 'KeyW') { e.preventDefault(); setWallpaper(undefined, true); return; }
+      if (e.altKey && e.code === 'KeyS') { e.preventDefault(); toggleSettings(); return; }
+      if (e.key === 'Escape' && settingsOpen()) { closeSettings(); return; }
       if (e.altKey && (e.code === 'ArrowRight' || e.code === 'ArrowLeft')) { e.preventDefault(); gotoWs(((curWs - 1 + (e.code === 'ArrowRight' ? 1 : -1) + WS.length) % WS.length) + 1); return; }
       if (e.key === 'Escape' && $('.screen.active .tile.fs')) { toggleFs($('.screen.active .tile.fs')); return; }
       const typing = document.activeElement === inp();
