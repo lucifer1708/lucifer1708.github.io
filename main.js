@@ -37,7 +37,7 @@
     $$('.sw').forEach((b) => b.classList.toggle('active', b.dataset.themePick === t));
     return true;
   };
-  setTheme(localStorage.getItem('theme') || 'matrix');
+  setTheme(localStorage.getItem('theme') || C.theme || 'arctic');
 
   /* ═════════════ settings (hyprctl-style panel, persisted) ═════════════ */
   const html = document.documentElement, rootStyle = html.style;

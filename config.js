@@ -8,6 +8,7 @@ window.PORTFOLIO = {
   role: "Backend Engineer",
   location: "India",
   editor: "nvim",
+  theme: "arctic",          // default for first-time visitors: matrix | amber | vampire | arctic | retro | cyberpunk
   tagline: "Backend engineer building cross-chain infra in Go — 100K+ concurrent requests, 300K+ transactions a day.",
 
   // Rendered as ~/about.md (shown in the nvim window). Lines starting with # are headings, - are list items.
