@@ -229,7 +229,9 @@
     if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) return fn();
     const tiles = $$('.tile', scr);
     tiles.forEach((t, i) => (t.style.viewTransitionName = 'tile' + i));
-    document.startViewTransition(fn).finished.finally(() => tiles.forEach((t) => (t.style.viewTransitionName = '')));
+    const vt = document.startViewTransition(fn);
+    vt.ready.catch(() => {});
+    vt.finished.catch(() => {}).finally(() => tiles.forEach((t) => (t.style.viewTransitionName = '')));
   }
 
   /* drag to float · corner to resize · dbl-click / Alt+T to snap back into the tiling */
@@ -330,12 +332,13 @@
     if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) return setTheme(t);
     const { x, y } = ptr;
     const vt = document.startViewTransition(() => setTheme(t));
+    vt.ready.catch(() => {});
     vt.ready.then(() => {
       const r = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
       document.documentElement.animate(
         { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] },
         { duration: 800, easing: 'cubic-bezier(.16,1,.3,1)', pseudoElement: '::view-transition-new(root)' });
-    });
+    }, () => {});
     notify(`Theme → ${t}`, 'colours reloaded <span class="dim">(hyprctl reload)</span>', 2200);
     return true;
   }
