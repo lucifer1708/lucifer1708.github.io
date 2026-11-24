@@ -60,9 +60,9 @@ button { font: inherit; color: inherit; }
   position: absolute; width: 60vmax; height: 60vmax; border-radius: 50%;
   filter: blur(90px); opacity: .32; animation: blob 24s ease-in-out infinite alternate;
 }
-#wall i:nth-child(1) { background: var(--accent); top: -25%; left: -15%; }
-#wall i:nth-child(2) { background: var(--accent2); bottom: -30%; right: -20%; animation-duration: 30s; animation-delay: -8s; }
-#wall i:nth-child(3) { background: color-mix(in srgb, var(--accent) 50%, var(--accent2)); top: 25%; left: 35%; width: 38vmax; height: 38vmax; opacity: .2; animation-duration: 19s; animation-delay: -4s; }
+#wall i:nth-of-type(1) { background: var(--accent); top: -25%; left: -15%; }
+#wall i:nth-of-type(2) { background: var(--accent2); bottom: -30%; right: -20%; animation-duration: 30s; animation-delay: -8s; }
+#wall i:nth-of-type(3) { background: color-mix(in srgb, var(--accent) 50%, var(--accent2)); top: 25%; left: 35%; width: 38vmax; height: 38vmax; opacity: .2; animation-duration: 19s; animation-delay: -4s; }
 @keyframes blob {
   0% { transform: translate(0, 0) scale(1) }
   33% { transform: translate(14vw, 9vh) scale(1.18) }
@@ -74,6 +74,22 @@ button { font: inherit; color: inherit; }
   background: radial-gradient(color-mix(in srgb, var(--fg) 14%, transparent) 1px, transparent 1.5px) 0 0 / 26px 26px;
   mask-image: radial-gradient(ellipse at center, #000 30%, transparent 80%);
 }
+/* wallhaven image layers: blurred thumb → sharp full-res, crossfade between picks, mouse parallax */
+#wall .wp {
+  position: absolute; inset: -40px;
+  opacity: 0; filter: blur(24px) saturate(1.2);
+  transform: scale(1.12) translate(calc(var(--px, 0) * -22px), calc(var(--py, 0) * -14px));
+  transition: opacity 1.1s ease, filter 1.2s ease, transform 1.8s var(--ease-out);
+}
+#wall .wp.in { opacity: 1; transform: scale(1.04) translate(calc(var(--px, 0) * -22px), calc(var(--py, 0) * -14px)); }
+#wall .wp.hi { filter: saturate(1.05); }
+#wall .wp img { width: 100%; height: 100%; object-fit: cover; display: block; }
+#wall .wp::after { /* scrim keeps text readable on busy wallpapers */
+  content: ""; position: absolute; inset: 0;
+  background: radial-gradient(ellipse at center, color-mix(in srgb, var(--bg) 30%, transparent), color-mix(in srgb, var(--bg) 72%, transparent));
+}
+html.has-wall #wall i { opacity: .12; }
+html.has-wall #wall .wm-name { display: none; }
 #wall .wm-name {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
   font-size: 18vw; font-weight: 800; letter-spacing: -.05em; white-space: nowrap;

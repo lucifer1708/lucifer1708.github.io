@@ -31,6 +31,18 @@ Then open http://localhost:8642
 
 You can use any repo name. With another name, the site serves at `https://<your-username>.github.io/<repo>/`.
 
+## Wallpapers (wallhaven.cc)
+
+Every reload and every theme change picks a random SFW wallpaper whose colours match the theme. It fades in as a blurred thumbnail, then sharpens when the full-resolution image arrives, and it shifts slightly as the mouse moves. To load a new one, press **Alt+W**, click the 🖼 button in the bar, or run `wallpaper`.
+
+wallhaven's API doesn't allow requests from browsers on other sites (no CORS headers), so the site can't search it directly. Instead, `scripts/fetch-wallpapers.mjs` saves about 45 random matches per theme to `wallpapers.json`, and the page picks from that list. The GitHub Action in `.github/workflows/wallpapers.yml` reruns the script every day and commits a new list. You can also start it by hand from the Actions tab, or run it locally:
+
+```bash
+node scripts/fetch-wallpapers.mjs
+```
+
+To change which colours or search terms each theme uses, edit `THEMES` in the script. Set `wallpapers: false` in `config.js` to turn wallpapers off.
+
 ## Features
 
 ### Hyprland-style WM

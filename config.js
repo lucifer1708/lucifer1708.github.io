@@ -91,4 +91,8 @@ window.PORTFOLIO = {
   ],
 
   resume: "", // e.g. "resume.pdf" (drop the file next to index.html)
+
+  // Random theme-matched wallpaper from wallhaven.cc on every load / theme change.
+  // Pool lives in wallpapers.json (refreshed daily by .github/workflows/wallpapers.yml).
+  wallpapers: true,
 };

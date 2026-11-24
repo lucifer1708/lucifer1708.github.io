@@ -106,6 +106,7 @@
 
   async function boot() {
     const box = $('#boot'), log = $('#boot-log');
+    setWallpaper();
     let skip = sessionStorage.getItem('booted') === '1';
     const onSkip = () => (skip = true);
     ['keydown', 'pointerdown'].forEach((e) => addEventListener(e, onSkip));
@@ -174,6 +175,7 @@
     $('#wall .wm-name').textContent = C.handle;
     $('#launch-btn').onclick = openLauncher;
     $('#power').onclick = () => runInTerm('reboot');
+    $('#wp-next').onclick = () => setWallpaper(undefined, true);
     $('#workspaces').onclick = (e) => { const b = e.target.closest('button'); if (b) gotoWs(+b.dataset.ws); };
     $('#screens').innerHTML = `
       <section class="screen" data-ws="1">
@@ -370,9 +372,10 @@
   function applyTheme(t) {
     if (!THEMES.includes(t)) return false;
     if (t === document.documentElement.dataset.theme) return true;
-    if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) return setTheme(t);
+    const swap = () => { setTheme(t); setWallpaper(t); };
+    if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) { swap(); return true; }
     const { x, y } = ptr;
-    const vt = document.startViewTransition(() => setTheme(t));
+    const vt = document.startViewTransition(swap);
     vt.ready.catch(() => {});
     vt.ready.then(() => {
       const r = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
@@ -382,6 +385,41 @@
     }, () => {});
     notify(`Theme → ${t}`, 'colours reloaded <span class="dim">(hyprctl reload)</span>', 2200);
     return true;
+  }
+
+  /* wallhaven wallpapers: random pick from the theme's pool (wallpapers.json, refreshed daily by CI) */
+  let WALLS = null;
+  const lastWall = {};
+  async function loadWalls() {
+    if (WALLS) return WALLS;
+    try { WALLS = await (await fetch('wallpapers.json', { cache: 'no-cache' })).json(); } catch { WALLS = {}; }
+    return WALLS;
+  }
+  async function setWallpaper(theme = document.documentElement.dataset.theme, announce = false) {
+    if (C.wallpapers === false) return;
+    const pool = (await loadWalls())[theme] || [];
+    if (!pool.length || theme !== document.documentElement.dataset.theme) return;
+    let w;
+    do { w = pool[(Math.random() * pool.length) | 0]; } while (pool.length > 1 && w.id === lastWall[theme]);
+    lastWall[theme] = w.id;
+    const wall = $('#wall'), layer = document.createElement('div'), pic = new Image();
+    layer.className = 'wp';
+    pic.alt = ''; pic.referrerPolicy = 'no-referrer';   // wallhaven rejects full-res hotlinks that carry a foreign Referer
+    pic.src = w.thumb;                                  // blurred thumbnail first, full-res swaps in when loaded
+    layer.appendChild(pic);
+    wall.prepend(layer);
+    document.documentElement.classList.add('has-wall');
+    requestAnimationFrame(() => requestAnimationFrame(() => layer.classList.add('in')));
+    const full = new Image();
+    full.referrerPolicy = 'no-referrer';
+    full.onload = () => { if (layer.isConnected) { pic.src = w.full; layer.classList.add('hi'); } };
+    full.src = w.full;
+    const old = $$('#wall .wp').filter((x) => x !== layer);
+    setTimeout(() => old.forEach((x) => x.remove()), 1400);
+    const btn = $('#wp-next');
+    if (btn) btn.title = `wallpaper ${w.id} · ${w.res} — click for next (Alt+W)`;
+    if (announce) notify('Wallpaper', `<a href="${esc(w.page)}" target="_blank" rel="noopener">wallhaven ${esc(w.id)}</a> · ${esc(w.res)} · ${esc(theme)}`, 3500);
+    return w;
   }
 
   /* mako-style notifications */
@@ -405,6 +443,7 @@
     ...C.projects.map((p) => ({ icon: '◆', label: `Open ${p.name}`, hint: 'project', run: () => { openProject(p); notify(`Launching ${p.name}`, esc(p.url || p.repo || 'no public link')); } })),
     ...THEMES.map((t) => ({ icon: '◐', label: `Theme: ${t}`, hint: 'theme', run: () => applyTheme(t) })),
     { icon: '⛶', label: 'Toggle fullscreen (focused window)', hint: 'Alt+F', run: () => toggleFs(focusedTile()) },
+    { icon: '🖼', label: 'Next wallpaper (wallhaven)', hint: 'Alt+W', run: () => setWallpaper(undefined, true) },
     { icon: '▤', label: 'Re-tile floating windows', hint: 'Alt+T', run: () => retile() || notify('Nothing to re-tile', 'drag a window by its title bar to float it.', 2500) },
     { icon: '▦', label: 'Toggle CRT scanlines', hint: 'crt', run: () => runInTerm('crt') },
     { icon: '⌁', label: 'Matrix rain', hint: 'matrix', run: () => runInTerm('matrix') },
@@ -731,6 +770,10 @@
     uname: { d: '', f(a) { print(a.includes('-a') ? `Linux ${esc(HOST)} ${KERNEL} #1 SMP PREEMPT_DYNAMIC x86_64 GNU/Linux` : 'Linux'); } },
     uptime: { d: '', f() { print(` ${new Date().toTimeString().slice(0, 8)} up ${uptime()},  1 user,  load average: 0.42, 0.13, 0.37`); } },
     clear: { d: 'clear the screen', f: clear },
+    wallpaper: { d: 'random wallhaven wallpaper for this theme', async f() {
+      const w = await setWallpaper(undefined, true);
+      print(w ? `swww img → <a href="${esc(w.page)}" target="_blank" rel="noopener">wallhaven ${esc(w.id)}</a> <span class="dim">${esc(w.res)}</span>` : 'wallpaper: no pool for this theme (run scripts/fetch-wallpapers.mjs)', w ? '' : 'err');
+    } },
     tile: { d: 'snap floating windows back', f() { print(retile() ? 'hyprctl dispatch retile → ok' : 'no floating windows. drag a title bar to float one.'); } },
     sudo: { d: '', async f(a, line) {
       print(`[sudo] password for ${esc(USER)}: `);
@@ -759,7 +802,7 @@
     hello: { d: '', f() { print(`hey there 👋 — I'm ${esc(C.name.split(' ')[0])}. type ${cmdLink('about')} or ${cmdLink('projects')}.`); } },
     coffee: { d: '', f() { print(esc('      ( (\n       ) )\n    ........\n    |      |]\n    \\      /\n     `----\'\n\nbrewing… ☕ productivity +40%')); } },
   };
-  const ALIASES = { ll: 'ls -la', la: 'ls -a', vi: 'vim', nvim: 'vim', hi: 'hello', apt: 'pacman', 'apt-get': 'pacman', yay: 'pacman', cls: 'clear', '?': 'help', git: 'experience', top: 'skills', htop: 'skills', email: 'contact', goto: 'ws', screenfetch: 'neofetch', fastfetch: 'neofetch' };
+  const ALIASES = { wall: 'wallpaper', swww: 'wallpaper', ll: 'ls -la', la: 'ls -a', vi: 'vim', nvim: 'vim', hi: 'hello', apt: 'pacman', 'apt-get': 'pacman', yay: 'pacman', cls: 'clear', '?': 'help', git: 'experience', top: 'skills', htop: 'skills', email: 'contact', goto: 'ws', screenfetch: 'neofetch', fastfetch: 'neofetch' };
 
   async function run(raw, echo = true) {
     if (echo) print(`${promptHTML()} ${esc(raw)}`);
@@ -936,6 +979,7 @@ Call Trace:
       if (e.altKey && /^Digit[1-4]$/.test(e.code)) { e.preventDefault(); gotoWs(+e.code.slice(5)); return; }
       if (e.altKey && e.code === 'KeyF') { e.preventDefault(); toggleFs(focusedTile()); return; }
       if (e.altKey && e.code === 'KeyT') { e.preventDefault(); retile(); return; }
+      if (e.altKey && e.code === 'KeyW') { e.preventDefault(); setWallpaper(undefined, true); return; }
       if (e.altKey && (e.code === 'ArrowRight' || e.code === 'ArrowLeft')) { e.preventDefault(); gotoWs(((curWs - 1 + (e.code === 'ArrowRight' ? 1 : -1) + WS.length) % WS.length) + 1); return; }
       if (e.key === 'Escape' && $('.screen.active .tile.fs')) { toggleFs($('.screen.active .tile.fs')); return; }
       const typing = document.activeElement === inp();
@@ -955,6 +999,7 @@ Call Trace:
     addEventListener('pointermove', (e) => {
       ptr = { x: e.clientX, y: e.clientY };
       wall.style.setProperty('--mx', e.clientX + 'px'); wall.style.setProperty('--my', e.clientY + 'px');
+      wall.style.setProperty('--px', (e.clientX / innerWidth - 0.5).toFixed(3)); wall.style.setProperty('--py', (e.clientY / innerHeight - 0.5).toFixed(3));
     }, { passive: true });
   }
 
