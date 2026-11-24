@@ -708,7 +708,7 @@
     const p = C.projects[rSel], prev = $('#r-prev');
     prev.innerHTML = `
       <div class="pv-title">${esc(p.name)}</div>
-      <div class="dim">${esc(p.year ?? '')} · ★ ${esc(p.stars ?? 0)} · ~/projects/${esc(p.slug)}</div>
+      <div class="dim">${[p.year, p.stars != null && `★ ${p.stars}`, `~/projects/${p.slug}`].filter(Boolean).map(esc).join(' · ')}</div>
       <p>${esc(p.desc)}</p>
       <div class="tags">${(p.tech || []).map((t, i) => `<span style="--n:${i}">${esc(t)}</span>`).join('')}</div>
       <div class="pv-links">
@@ -739,11 +739,13 @@
   }
 
   /* git log */
+  const notes = (e) => [].concat(e.note || []);
+  const orgHTML = (e) => (e.url ? `<a class="accent2" href="${esc(e.url)}" target="_blank" rel="noopener">${esc(e.org)}</a>` : `<span class="accent2">${esc(e.org)}</span>`);
   function buildGit() {
     $('#gitlog').innerHTML = C.experience.map((e, i) => `
-      <div class="commit" style="--n:${i}"><span class="graph">*</span> <span class="sha">${hash7(e.role + e.org)}</span> ${i === 0 ? '<span class="ref">(<span class="head">HEAD -&gt; main</span>)</span> ' : ''}<b>${esc(e.role)}</b> <span class="dim">@</span> <span class="accent2">${esc(e.org)}</span>
+      <div class="commit" style="--n:${i}"><span class="graph">*</span> <span class="sha">${hash7(e.role + e.org)}</span> ${i === 0 ? '<span class="ref">(<span class="head">HEAD -&gt; main</span>)</span> ' : ''}<b>${esc(e.role)}</b> <span class="dim">@</span> ${orgHTML(e)}
         <div class="cmeta"><span class="graph">|</span> Date: ${esc(e.date)}</div>
-        <div class="cmsg"><span class="graph">|</span>     ${esc(e.note)}</div></div>`).join('') +
+        ${notes(e).map((n) => `<div class="cmsg"><span class="graph">|</span>     ${esc(n)}</div>`).join('')}</div>`).join('') +
       `<div class="commit" style="--n:${C.experience.length}"><span class="graph">*</span> <span class="sha">0000000</span> <b>Initial commit</b> <span class="dim">— printf("hello, world\\n");</span></div>`;
   }
 
@@ -897,7 +899,7 @@
   /* virtual fs */
   const projText = (p) => [`# ${p.name}`, '', p.desc, '', `tech:   ${(p.tech || []).join(', ')}`, p.url ? `live:   ${p.url}` : '', p.repo ? `source: ${p.repo}` : ''].filter((x, i) => x || i < 4).join('\n');
   const skillsText = () => C.skills.map((s) => `${s.name.padEnd(13)} ${'█'.repeat(Math.round(s.level / 5)).padEnd(20, '░')} ${s.level}%`).join('\n') + `\n\nstack: ${C.stack.join(' · ')}`;
-  const gitText = () => C.experience.map((e) => `* ${hash7(e.role + e.org)} ${e.role} @ ${e.org}\n|   Date: ${e.date}\n|   ${e.note}`).join('\n') + '\n* 0000000 Initial commit';
+  const gitText = () => C.experience.map((e) => `* ${hash7(e.role + e.org)} ${e.role} @ ${e.org}\n|   Date: ${e.date}\n${notes(e).map((n) => `|   ${n}`).join('\n')}`).join('\n') + '\n* 0000000 Initial commit';
   const contactText = () => C.contact.map((c) => `${c.label.padEnd(10)} ${c.text}`).join('\n');
   const SECRET = [
     '🔑 you found the secret file.', '',
@@ -952,7 +954,7 @@
       }).join('\n') + `\n\n  <span class="dim">stack:</span> ${esc(C.stack.join(' · '))}`);
     } },
     experience: { d: 'career, as a git log', f() {
-      print(C.experience.map((e, i) => `<span class="warn">* ${hash7(e.role + e.org)}</span> ${i === 0 ? '<span class="accent2">(HEAD -&gt; main)</span> ' : ''}<b>${esc(e.role)}</b> @ <span class="accent2">${esc(e.org)}</span>\n<span class="warn">|</span>   <span class="dim">Date: ${esc(e.date)}</span>\n<span class="warn">|</span>   ${esc(e.note)}`).join('\n') + `\n<span class="warn">* 0000000</span> Initial commit`);
+      print(C.experience.map((e, i) => `<span class="warn">* ${hash7(e.role + e.org)}</span> ${i === 0 ? '<span class="accent2">(HEAD -&gt; main)</span> ' : ''}<b>${esc(e.role)}</b> @ ${orgHTML(e)}\n<span class="warn">|</span>   <span class="dim">Date: ${esc(e.date)}</span>\n${notes(e).map((n) => `<span class="warn">|</span>   ${esc(n)}`).join('\n')}`).join('\n') + `\n<span class="warn">* 0000000</span> Initial commit`);
     } },
     contact: { d: 'ways to reach me', f() {
       print(C.contact.map((c) => `  <span class="warn">${esc(c.label.padEnd(10))}</span><a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.text)}</a>`).join('\n'));
