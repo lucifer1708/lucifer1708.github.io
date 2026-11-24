@@ -65,6 +65,7 @@
     { k: 'spin', label: 'animated borders', def: true, apply: (v) => html.classList.toggle('no-spin', !v) },
     { k: 'ffm', label: 'focus follows mouse', def: true },
     { k: 'tips', label: 'tooltips & tips', def: true },
+    { k: 'lock', label: 'idle lock screen (90s)', def: true, apply: (v, init) => { if (!init) bumpIdle(); } },
   ];
   const SPECS = [...SLIDERS, ...TOGGLES];
   const S = Object.fromEntries(SPECS.map((s) => [s.k, s.def]));
@@ -266,7 +267,7 @@
   function buildDesktop() {
     $('#workspaces').innerHTML = WS.map((w) => `<button data-ws="${w.n}" title="Workspace ${w.n} · ${w.name} — press ${w.n} or Alt+${w.n} · Alt+←/→ cycles">${w.n}<em>${w.name}</em></button>`).join('');
     $('#wall .wm-name').textContent = C.handle;
-    $('#launch-btn').onclick = openLauncher;
+    $('#launch-btn').onclick = logoClick;
     $('#power').onclick = () => runInTerm('reboot');
     $('#wp-next').onclick = () => setWallpaper(undefined, true);
     $('#st-btn').onclick = toggleSettings;
@@ -409,7 +410,9 @@
         }
         tile.style.left = Math.min(Math.max(ox + dx, 80 - ow), sw - 80) + 'px';
         tile.style.top = Math.min(Math.max(oy + dy, 0), sh - 30) + 'px';
-        vx += (ev.clientX - lastX) * 0.25; lastX = ev.clientX;
+        const stepX = ev.clientX - lastX;
+        vx += stepX * 0.25; lastX = ev.clientX;
+        shakeCheck(tile, stepX);
         if (mode !== 'move') return;
         const target = hit(ev);
         if (!target) return;
@@ -615,6 +618,7 @@
     ...C.projects.map((p) => ({ icon: '◆', label: `Open ${p.name}`, hint: 'project', run: () => { openProject(p); notify(`Launching ${p.name}`, esc(p.url || p.repo || 'no public link')); } })),
     ...THEMES.map((t) => ({ icon: '◐', label: `Theme: ${t}`, hint: 'theme', run: () => applyTheme(t) })),
     { icon: '⛶', label: 'Toggle fullscreen (focused window)', hint: 'Alt+F', run: () => toggleFs(focusedTile()) },
+    { icon: '🔒', label: 'Lock screen', hint: 'hyprlock', run: () => lockScreen() },
     { icon: '⌨', label: 'Keybind cheatsheet', hint: '?', run: () => openKeys() },
     { icon: '⚙', label: 'Settings — blur, radius, gaps, opacity…', hint: 'Alt+S', run: () => openSettings() },
     { icon: '🖼', label: 'Next wallpaper (wallhaven)', hint: 'Alt+W', run: () => setWallpaper(undefined, true) },
@@ -894,7 +898,14 @@
   const skillsText = () => C.skills.map((s) => `${s.name.padEnd(13)} ${'█'.repeat(Math.round(s.level / 5)).padEnd(20, '░')} ${s.level}%`).join('\n') + `\n\nstack: ${C.stack.join(' · ')}`;
   const gitText = () => C.experience.map((e) => `* ${hash7(e.role + e.org)} ${e.role} @ ${e.org}\n|   Date: ${e.date}\n|   ${e.note}`).join('\n') + '\n* 0000000 Initial commit';
   const contactText = () => C.contact.map((c) => `${c.label.padEnd(10)} ${c.text}`).join('\n');
-  const SECRET = "🔑 you found the secret file.\n\n  → try: hack, matrix, sl, cowsay, sudo rm -rf /\n  → or the Konami code: ↑ ↑ ↓ ↓ ← → ← → b a";
+  const SECRET = [
+    '🔑 you found the secret file.', '',
+    '  commands  → hack · matrix · sl · flip · gravity · do a barrel roll · lolcat · hire',
+    '              fortune | lolcat · sudo make me a sandwich · :(){ :|:& };: · xyzzy · lock',
+    '  mouse     → pet the penguin · click the >_ logo 5× fast · shake a window while dragging',
+    '  keyboard  → ↑ ↑ ↓ ↓ ← → ← → b a',
+    '  patience  → go idle for 90 seconds',
+  ].join('\n');
   const HOME = {
     'about.md': () => C.about.join('\n'),
     'skills.txt': skillsText,
@@ -1013,8 +1024,10 @@
     } },
     tile: { d: 'snap floating windows back', f() { print(retile() ? 'hyprctl dispatch retile → ok' : 'no floating windows. drag a title bar to float one.'); } },
     sudo: { d: '', async f(a, line) {
+      if (a[0] === '!!') return print('nice try. history expansion is disabled for guests 😏', 'warn');
       print(`[sudo] password for ${esc(USER)}: `);
       await sleep(700);
+      if (/make me a sandwich/i.test(line)) return print('Okay. 🥪');
       if (/rm\s+-(rf|fr)\s+\/(\s|$|\*)/.test(line)) return meltdown();
       print(`<span class="err">${esc(USER)} is not in the sudoers file. This incident will be reported. 🚨</span>`);
     } },
@@ -1041,11 +1054,183 @@
   };
   const ALIASES = { shortcuts: 'keys', keybinds: 'keys', hyprctl: 'settings', config: 'settings', wall: 'wallpaper', swww: 'wallpaper', ll: 'ls -la', la: 'ls -a', vi: 'vim', nvim: 'vim', hi: 'hello', apt: 'pacman', 'apt-get': 'pacman', yay: 'pacman', cls: 'clear', '?': 'help', git: 'experience', top: 'skills', htop: 'skills', email: 'contact', goto: 'ws', screenfetch: 'neofetch', fastfetch: 'neofetch' };
 
+  /* ═════════════ easter eggs ═════════════ */
+  function confetti(n = 180, x = innerWidth / 2, y = innerHeight / 3) {
+    const cv = document.createElement('canvas');
+    cv.className = 'fx'; cv.width = innerWidth; cv.height = innerHeight;
+    document.body.appendChild(cv);
+    const ctx = cv.getContext('2d'), cs = getComputedStyle(html);
+    const cols = ['--accent', '--accent2', '--warn', '--err', '--fg'].map((v) => cs.getPropertyValue(v).trim());
+    const P = Array.from({ length: n }, () => ({ x, y, vx: rand(-10, 10), vy: rand(-16, -4), r: rand(3, 7), c: cols[(Math.random() * cols.length) | 0], a: rand(0, 6), va: rand(-0.3, 0.3) }));
+    let f = 0;
+    (function step() {
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      for (const p of P) {
+        p.vy += 0.35; p.vx *= 0.99; p.x += p.vx; p.y += p.vy; p.a += p.va;
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.a); ctx.fillStyle = p.c; ctx.fillRect(-p.r, -p.r / 2, p.r * 2, p.r); ctx.restore();
+      }
+      if (++f < 220) requestAnimationFrame(step); else cv.remove();
+    })();
+  }
+
+  const rainbow = (t) => [...t].map((ch, i) => `<span style="color:hsl(${(i * 13) % 360} 95% 66%)">${esc(ch)}</span>`).join('');
+  function lolcatify(nodes) {   // recolour every text node of the given output lines
+    let i = 0;
+    for (const n of nodes) {
+      const walker = document.createTreeWalker(n, NodeFilter.SHOW_TEXT), texts = [];
+      while (walker.nextNode()) texts.push(walker.currentNode);
+      for (const t of texts) {
+        const frag = document.createElement('span');
+        frag.innerHTML = [...t.textContent].map((ch) => (ch === '\n' ? (i += 0, '\n') : `<span style="color:hsl(${(i++ * 9) % 360} 95% 66%)">${esc(ch)}</span>`)).join('');
+        t.replaceWith(frag);
+      }
+    }
+  }
+
+  function tableFlip() {
+    print('(╯°□°)╯︵ ┻━┻');
+    $('#screens').animate(
+      [{ transform: 'none' }, { transform: 'rotate(180deg) scale(.9)', offset: 0.18 }, { transform: 'rotate(180deg) scale(.9)', offset: 0.8 }, { transform: 'none' }],
+      { duration: 3600, easing: 'cubic-bezier(.05,.9,.1,1.05)' });
+    setTimeout(() => print('┬─┬ノ( º _ ºノ)  <span class="dim">please respect the furniture.</span>'), 3000);
+  }
+  function barrelRoll() {
+    $('#desktop').animate([{ transform: 'rotate(0)' }, { transform: 'rotate(360deg)' }], { duration: 1600, easing: 'cubic-bezier(.65,0,.35,1)' });
+  }
+  function gravity() {
+    print('<span class="warn">g = 9.81 m/s² enabled</span>');
+    $$('.screen.active .tile').forEach((t, i) => {
+      const r = rand(-50, 50);
+      t.animate([
+        { transform: 'none', easing: 'cubic-bezier(.55,0,1,.45)' },
+        { transform: `translateY(${innerHeight}px) rotate(${r}deg)`, offset: 0.35 },
+        { transform: `translateY(${innerHeight}px) rotate(${r}deg)`, offset: 0.6, easing: 'cubic-bezier(.05,.9,.1,1.05)' },
+        { transform: 'none' },
+      ], { duration: 3400, delay: i * 90 });
+    });
+    setTimeout(() => notify('🍎 Newton was here', 'windows restored. physics disabled again.', 3000), 3200);
+  }
+  async function forkBomb() {
+    print('<span class="warn">bash: fork: retry: Resource temporarily unavailable</span>');
+    const layer = document.createElement('div');
+    layer.className = 'bomb';
+    document.body.appendChild(layer);
+    for (let gen = 0, n = 1; gen < 6; gen++, n *= 2) {
+      for (let i = 0; i < n; i++) {
+        const b = document.createElement('div');
+        b.className = 'bomb-win';
+        b.style.left = rand(0, 85) + 'vw'; b.style.top = rand(6, 88) + 'vh';
+        b.textContent = ':(){ :|:& };:';
+        layer.appendChild(b);
+      }
+      await sleep(280);
+    }
+    notify('OOM killer', 'Out of memory: Killed process 1337 (bash). Nice try 😏', 4000);
+    layer.classList.add('dead');
+    await sleep(700);
+    layer.remove();
+    print('<span class="dim">[1]+  Killed                  :(){ :|:& };:</span>');
+  }
+
+  /* penguin petting */
+  let tuxPets = 0;
+  const TUX_SAYS = ['I use Arch btw.', 'sudo pet penguin', 'Linus says hi 👋', 'Have you tried Hyprland?', 'Stop poking me 😤', 'that tickles', 'segfault (core dumped… my feelings)', 'free as in freedom'];
+  function petTux(el) {
+    tuxPets++;
+    el.animate([{ transform: 'none' }, { transform: 'translateY(-16px) rotate(-10deg) scale(1.08)' }, { transform: 'translateY(0) rotate(6deg)' }, { transform: 'none' }], { duration: 520, easing: 'cubic-bezier(.05,.9,.1,1.05)' });
+    if (tuxPets % 10 === 0) { confetti(120); notify('🐧❤️', `You pet the penguin ${tuxPets} times. He trusts you now.`, 3500); }
+    else notify('🐧', TUX_SAYS[(tuxPets - 1) % TUX_SAYS.length], 2000);
+  }
+
+  /* logo spam → party */
+  let logoClicks = [];
+  function logoClick() {
+    const now = Date.now();
+    logoClicks = logoClicks.filter((t) => now - t < 1500).concat(now);
+    if (logoClicks.length >= 5) {
+      logoClicks = [];
+      closeLauncher();
+      const r = $('#launch-btn').getBoundingClientRect();
+      confetti(200, r.left + r.width / 2, r.bottom);
+      notify('🎉 achievement unlocked', 'clicked the logo 5 times. you have the curiosity we hire for.', 3500);
+      return;
+    }
+    openLauncher();
+  }
+
+  /* shaking a dragged window makes it dizzy */
+  function shakeCheck(tile, step) {
+    const s = (tile._shake ||= { sign: 0, flips: 0, t0: 0, told: false });
+    const now = Date.now();
+    if (now - s.t0 > 1200) { s.flips = 0; s.t0 = now; }
+    if (Math.abs(step) > 10 && Math.sign(step) !== s.sign) { s.sign = Math.sign(step); s.flips++; }
+    if (s.flips >= 8 && !s.told) { s.told = true; notify('😵 whoa, careful', 'you are making the window dizzy.', 2500); setTimeout(() => (s.told = false), 5000); }
+  }
+
+  /* hyprlock-style idle lock screen */
+  let locked = false, idleT = 0, lockClock = 0;
+  function bumpIdle() { clearTimeout(idleT); if (S.lock && !locked) idleT = setTimeout(lockScreen, 90000); }
+  function lockScreen() {
+    if (locked) return;
+    locked = true;
+    const L = $('#lock');
+    const tick = () => {
+      const d = new Date();
+      $('#lk-time').textContent = d.toTimeString().slice(0, 5);
+      $('#lk-date').textContent = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+    };
+    tick(); lockClock = setInterval(tick, 1000);
+    $('#lk-pass').innerHTML = '<span class="dim">press any key to unlock</span>';
+    L.hidden = false;
+    requestAnimationFrame(() => requestAnimationFrame(() => L.classList.add('on')));
+  }
+  async function unlockScreen() {
+    if (!locked || $('#lock').classList.contains('unlocking')) return;
+    const L = $('#lock'), pass = $('#lk-pass');
+    L.classList.add('unlocking');
+    pass.textContent = '';
+    for (let i = 0; i < 8; i++) { pass.textContent += '●'; await sleep(45); }
+    pass.innerHTML = '<span class="accent">✓ welcome back</span>';
+    await sleep(350);
+    L.classList.remove('on');
+    await sleep(600);
+    L.hidden = true; L.classList.remove('unlocking');
+    clearInterval(lockClock);
+    locked = false; bumpIdle();
+  }
+
+  const EGG_CMDS = {
+    flip: { d: '', f: tableFlip },
+    tableflip: { d: '', f: tableFlip },
+    do: { d: '', f(a) { /^a barrel roll$/i.test(a.join(' ')) ? barrelRoll() : print('do: what? (hint: something a fox pilot would do)', 'dim'); } },
+    barrelroll: { d: '', f: barrelRoll },
+    gravity: { d: '', f: gravity },
+    lolcat: { d: '', f(a) { print(rainbow(a.join(' ') || 'taste the rainbow 🌈')); } },
+    make: { d: '', f(a) { print(/^me a sandwich$/i.test(a.join(' ')) ? 'What? Make it yourself.' : 'make: *** No targets specified and no makefile found.  Stop.'); } },
+    xyzzy: { d: '', f() { print('Nothing happens.'); } },
+    42: { d: '', f() { print('The answer. Now… what was the question?'); } },
+    hire: { d: '', f() {
+      confetti(240);
+      print(`<span class="big">${esc(bigText('HIRED!'))}</span>`);
+      print(`excellent decision. let's talk → ${cmdLink('contact')}`);
+      setTimeout(() => gotoWs(4), 1600);
+    } },
+    lock: { d: '', f() { setTimeout(lockScreen, 200); } },
+    confetti: { d: '', f() { confetti(); } },
+  };
+
+  Object.assign(CMDS, EGG_CMDS);
+  Object.assign(ALIASES, { hyprlock: 'lock', cmatrix: 'matrix', party: 'confetti', rainbow: 'lolcat' });
+
   async function run(raw, echo = true) {
     if (echo) print(`${promptHTML()} ${esc(raw)}`);
     let line = raw.trim();
     if (!line) return;
     hist.push(line); hi = hist.length;
+    if (line.replace(/\s/g, '').startsWith(':(){')) return forkBomb();
+    const pipeLol = /\|\s*lolcat\s*$/.test(line);
+    if (pipeLol) line = line.replace(/\|\s*lolcat\s*$/, '').trim();
+    const mark = $('#term-out').children.length;
     let [cmd, ...args] = line.split(/\s+/);
     cmd = cmd.toLowerCase();
     if (ALIASES[cmd]) { const [c2, ...a2] = ALIASES[cmd].split(' '); cmd = c2; args = [...a2, ...args]; line = [c2, ...a2, ...line.split(/\s+/).slice(1)].join(' '); }
@@ -1055,7 +1240,7 @@
       return print(`zsh: command not found: ${esc(cmd)}${close ? `  <span class="dim">— did you mean</span> ${cmdLink(close)}<span class="dim">?</span>` : `  <span class="dim">— try</span> ${cmdLink('help')}`}`, 'err');
     }
     busy = true; $('#term-line').classList.add('busy');
-    try { await c.f(args, line); } finally {
+    try { await c.f(args, line); if (pipeLol) lolcatify([...$('#term-out').children].slice(mark)); } finally {
       busy = false; $('#term-line').classList.remove('busy'); scrollTerm(); if (curWs === 1) focusTerm();
     }
   }
@@ -1206,6 +1391,7 @@ Call Trace:
   /* global keys */
   function bindGlobal() {
     addEventListener('keydown', (e) => {
+      if (locked) { e.preventDefault(); unlockScreen(); return; }
       if (stopMatrix && Date.now() - mxStart > 400) { stopMatrix(); return; }
       if ((e.altKey && e.code === 'Space') || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k')) {
         e.preventDefault(); launcherOpen() ? closeLauncher() : openLauncher(); return;
@@ -1262,6 +1448,13 @@ Call Trace:
     $('#keys').addEventListener('pointerdown', closeKeys);
     $('#keys-btn').onclick = openKeys;
     scheduleTips();
+    $('#screens').addEventListener('click', (e) => { const t = e.target.closest('.tux'); if (t) petTux(t); });
+    $('#lock').addEventListener('pointerdown', unlockScreen);
+    $('#lk-name').textContent = C.name;
+    ['pointermove', 'pointerdown', 'keydown', 'wheel'].forEach((ev) => addEventListener(ev, bumpIdle, { passive: true }));
+    bumpIdle();
+    console.log('%c>_ hey there, fellow dev', 'font:800 20px monospace;color:#39ff14;text-shadow:0 0 8px #39ff14');
+    console.log('%cLike poking around in devtools? So do I. Type `hire` in the terminal 😉', 'font:13px monospace;color:#00e5ff');
     const fromHash = WS.find((w) => '#' + w.name === location.hash);
     gotoWs(fromHash ? fromHash.n : 1, true);
     tickBar(); setInterval(tickBar, 1000);
