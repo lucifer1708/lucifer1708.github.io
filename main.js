@@ -137,7 +137,7 @@
 
   /* ═════════════ desktop building ═════════════ */
   const win = (title, body, cls = '') =>
-    `<div class="win ${cls}"><div class="win-bar" title="double-click to fullscreen"><span class="dots"><i></i><i></i><i></i></span><span class="win-name">${esc(title)}</span><span class="fs-hint">⛶ dbl-click</span></div><div class="win-body">${body}</div></div>`;
+    `<div class="win ${cls}"><div class="win-bar" title="drag to move · double-click to fullscreen / re-tile"><span class="dots"><i></i><i></i><i></i></span><span class="win-name">${esc(title)}</span><span class="fs-hint">drag · dbl-click ⛶</span></div><div class="win-body">${body}</div><span class="rz" title="drag to resize"></span></div>`;
 
   const TUX = [
     '        .--.',
@@ -200,7 +200,8 @@
       t.style.setProperty('--i', i);
       t.addEventListener('pointerenter', () => focusWin(t));   // focus follows mouse
       t.addEventListener('pointerdown', () => focusWin(t));
-      $('.win-bar', t).addEventListener('dblclick', () => toggleFs(t));
+      $('.win-bar', t).addEventListener('dblclick', () => (t.classList.contains('floating') ? layoutTransition(s, () => unfloat(t)) : toggleFs(t)));
+      bindDrag(t);
     }));
   }
 
@@ -217,16 +218,84 @@
   function toggleFs(tile) {
     if (!tile) return;
     const scr = tile.closest('.screen');
-    const apply = () => {
+    layoutTransition(scr, () => {
       const on = !tile.classList.contains('fs');
       $$('.tile.fs', scr).forEach((t) => t.classList.remove('fs'));
       tile.classList.toggle('fs', on);
       scr.classList.toggle('has-fs', on);
-    };
-    if (!document.startViewTransition) return apply();
+    });
+  }
+  function layoutTransition(scr, fn) {
+    if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) return fn();
     const tiles = $$('.tile', scr);
     tiles.forEach((t, i) => (t.style.viewTransitionName = 'tile' + i));
-    document.startViewTransition(apply).finished.finally(() => tiles.forEach((t) => (t.style.viewTransitionName = '')));
+    document.startViewTransition(fn).finished.finally(() => tiles.forEach((t) => (t.style.viewTransitionName = '')));
+  }
+
+  /* drag to float · corner to resize · dbl-click / Alt+T to snap back into the tiling */
+  let zTop = 10;
+  const canFloat = () => !matchMedia('(max-width: 900px)').matches;
+  const raise = (tile) => { if (tile.classList.contains('floating')) tile.style.zIndex = ++zTop; };
+  function floatTile(tile) {
+    if (tile.classList.contains('floating')) return;
+    const sr = tile.closest('.screen').getBoundingClientRect(), r = tile.getBoundingClientRect();
+    Object.assign(tile.style, { left: r.left - sr.left + 'px', top: r.top - sr.top + 'px', width: r.width + 'px', height: r.height + 'px' });
+    tile.classList.add('floating');
+  }
+  function unfloat(tile) {
+    tile.classList.remove('floating');
+    ['left', 'top', 'width', 'height', 'zIndex'].forEach((p) => (tile.style[p] = ''));
+  }
+  function retile(scr = $('.screen.active')) {
+    const fl = $$('.tile.floating', scr);
+    if (!fl.length) return false;
+    layoutTransition(scr, () => fl.forEach(unfloat));
+    return true;
+  }
+  function bindDrag(tile) {
+    const start = (e, mode) => {
+      if (e.button !== 0 || !canFloat() || tile.classList.contains('fs')) return;
+      e.preventDefault();
+      focusWin(tile); raise(tile);
+      const scr = tile.closest('.screen'), sx = e.clientX, sy = e.clientY;
+      let began = false, ox, oy, ow, oh, lastX = sx, vx = 0;
+      const wobble = () => {   // velocity-based tilt that settles when the cursor stops
+        if (!began || !tile.classList.contains('dragging')) return;
+        vx *= 0.85;
+        tile.style.setProperty('--tilt', Math.max(-7, Math.min(7, vx)).toFixed(2) + 'deg');
+        requestAnimationFrame(wobble);
+      };
+      const move = (ev) => {
+        const dx = ev.clientX - sx, dy = ev.clientY - sy;
+        if (!began) {
+          if (Math.hypot(dx, dy) < 4) return;
+          began = true; floatTile(tile); raise(tile);
+          ox = parseFloat(tile.style.left); oy = parseFloat(tile.style.top); ow = tile.offsetWidth; oh = tile.offsetHeight;
+          tile.classList.add(mode === 'move' ? 'dragging' : 'resizing');
+          document.body.classList.add('wm-' + mode);
+          if (mode === 'move') requestAnimationFrame(wobble);
+        }
+        const sw = scr.clientWidth, sh = scr.clientHeight;
+        if (mode === 'move') {
+          tile.style.left = Math.min(Math.max(ox + dx, 80 - ow), sw - 80) + 'px';
+          tile.style.top = Math.min(Math.max(oy + dy, 0), sh - 30) + 'px';
+          vx += (ev.clientX - lastX) * 0.25; lastX = ev.clientX;
+        } else {
+          tile.style.width = Math.max(240, Math.min(ow + dx, sw - ox)) + 'px';
+          tile.style.height = Math.max(120, Math.min(oh + dy, sh - oy)) + 'px';
+        }
+      };
+      const up = () => {
+        removeEventListener('pointermove', move); removeEventListener('pointerup', up); removeEventListener('pointercancel', up);
+        tile.classList.remove('dragging', 'resizing');
+        tile.style.setProperty('--tilt', '0deg');
+        document.body.classList.remove('wm-move', 'wm-resize');
+      };
+      addEventListener('pointermove', move); addEventListener('pointerup', up); addEventListener('pointercancel', up);
+    };
+    $('.win-bar', tile).addEventListener('pointerdown', (e) => start(e, 'move'));
+    $('.rz', tile).addEventListener('pointerdown', (e) => start(e, 'resize'));
+    tile.addEventListener('pointerdown', () => raise(tile));
   }
   const GLYPHS = '!<>-_/[]{}=+*^?#░▒▓01';
   function scramble(el, text, frames = 16) {
@@ -292,6 +361,7 @@
     ...C.projects.map((p) => ({ icon: '◆', label: `Open ${p.name}`, hint: 'project', run: () => { openProject(p); notify(`Launching ${p.name}`, esc(p.url || p.repo || 'no public link')); } })),
     ...THEMES.map((t) => ({ icon: '◐', label: `Theme: ${t}`, hint: 'theme', run: () => applyTheme(t) })),
     { icon: '⛶', label: 'Toggle fullscreen (focused window)', hint: 'Alt+F', run: () => toggleFs(focusedTile()) },
+    { icon: '▤', label: 'Re-tile floating windows', hint: 'Alt+T', run: () => retile() || notify('Nothing to re-tile', 'drag a window by its title bar to float it.', 2500) },
     { icon: '▦', label: 'Toggle CRT scanlines', hint: 'crt', run: () => runInTerm('crt') },
     { icon: '⌁', label: 'Matrix rain', hint: 'matrix', run: () => runInTerm('matrix') },
     { icon: '⚡', label: 'Hack the mainframe', hint: 'hack', run: () => runInTerm('hack') },
@@ -529,7 +599,7 @@
   const CMDS = {
     help: { d: 'list available commands', f() {
       const rows = Object.entries(CMDS).filter(([, c]) => c.d).map(([k, c]) => `  ${cmdLink(k)}${' '.repeat(Math.max(1, 12 - k.length))}<span class="dim">${esc(c.d)}</span>`);
-      print(`<b>Available commands</b> <span class="dim">(click or type)</span>\n${rows.join('\n')}\n\n<span class="dim">Tab autocompletes · ↑/↓ history · Ctrl+L clear · Alt+1..4 / Alt+←→ workspaces · Alt+Space launcher · Alt+F fullscreen · there are hidden commands 👀</span>`);
+      print(`<b>Available commands</b> <span class="dim">(click or type)</span>\n${rows.join('\n')}\n\n<span class="dim">Tab autocompletes · ↑/↓ history · Ctrl+L clear · Alt+1..4 / Alt+←→ workspaces · Alt+Space launcher · Alt+F fullscreen · drag title bars to float, Alt+T re-tile · there are hidden commands 👀</span>`);
     } },
     about: { d: 'who is this person', f() { CMDS.cat.f(['~/about.md']); } },
     whoami: { d: 'print effective user', f() { print(`${esc(USER)}  <span class="dim"># ${esc(C.name)} — ${esc(C.role)}, ${esc(C.location)}</span>`); } },
@@ -617,6 +687,7 @@
     uname: { d: '', f(a) { print(a.includes('-a') ? `Linux ${esc(HOST)} ${KERNEL} #1 SMP PREEMPT_DYNAMIC x86_64 GNU/Linux` : 'Linux'); } },
     uptime: { d: '', f() { print(` ${new Date().toTimeString().slice(0, 8)} up ${uptime()},  1 user,  load average: 0.42, 0.13, 0.37`); } },
     clear: { d: 'clear the screen', f: clear },
+    tile: { d: 'snap floating windows back', f() { print(retile() ? 'hyprctl dispatch retile → ok' : 'no floating windows. drag a title bar to float one.'); } },
     sudo: { d: '', async f(a, line) {
       print(`[sudo] password for ${esc(USER)}: `);
       await sleep(700);
@@ -820,6 +891,7 @@ Call Trace:
       if (kIdx === KONAMI.length) { kIdx = 0; toggleParty(); }
       if (e.altKey && /^Digit[1-4]$/.test(e.code)) { e.preventDefault(); gotoWs(+e.code.slice(5)); return; }
       if (e.altKey && e.code === 'KeyF') { e.preventDefault(); toggleFs(focusedTile()); return; }
+      if (e.altKey && e.code === 'KeyT') { e.preventDefault(); retile(); return; }
       if (e.altKey && (e.code === 'ArrowRight' || e.code === 'ArrowLeft')) { e.preventDefault(); gotoWs(((curWs - 1 + (e.code === 'ArrowRight' ? 1 : -1) + WS.length) % WS.length) + 1); return; }
       if (e.key === 'Escape' && $('.screen.active .tile.fs')) { toggleFs($('.screen.active .tile.fs')); return; }
       const typing = document.activeElement === inp();
@@ -861,7 +933,7 @@ Call Trace:
     tickBar(); setInterval(tickBar, 1000);
     setTimeout(tickHtop, 900); setInterval(tickHtop, 1800);
     setInterval(tickCava, 95);
-    setTimeout(() => notify(`Welcome, guest 👋`, `<b>Alt+Space</b> / <b>Ctrl+K</b> launcher · <b>Alt+1..4</b> workspaces · <b>dbl-click</b> a title bar to fullscreen`, 7000), 1400);
+    setTimeout(() => notify(`Welcome, guest 👋`, `<b>Alt+Space</b> / <b>Ctrl+K</b> launcher · <b>Alt+1..4</b> workspaces · <b>drag</b> title bars to move windows · <b>dbl-click</b> fullscreen · <b>Alt+T</b> re-tile`, 7000), 1400);
 
     print(`<span class="big">${esc(bigText(C.name))}</span>`);
     print(`Welcome to <b class="accent">PortfolioOS 1.0 LTS</b> (GNU/Linux ${KERNEL} x86_64)

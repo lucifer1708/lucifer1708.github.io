@@ -43,6 +43,7 @@ You can use any repo name. With another name, the site serves at `https://<your-
 - Changing theme reveals the new colours in a circle that grows from the cursor.
 - Animated aurora wallpaper with a spotlight that follows the cursor. Window titles scramble in like decoded text. A fake cava visualizer bounces along.
 - **Alt+←/→** cycles workspaces.
+- Drag a window's title bar to float it and move it anywhere in the workspace. It tilts while you move it. Drag the bottom-right corner to resize it. Double-click a floating window's title bar, press **Alt+T**, or run `tile` to snap windows back into the tiling.
 
 - Boot sequence with a fake kernel log, systemd `[ OK ]` lines and an auto-typed login. Press any key to skip. It plays once per tab session.
 - Four workspaces in an i3/polybar-style layout: `1 term`, `2 projects` (ranger), `3 about` (nvim and git log), `4 contact` (cowsay).
