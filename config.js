@@ -103,7 +103,7 @@ window.PORTFOLIO = {
     { label: "email", text: "sd08012003@gmail.com", url: "mailto:sd08012003@gmail.com" },
   ],
 
-  resume: "", // e.g. "resume.pdf" (drop the file next to index.html)
+  resume: "resume.pdf", // file next to index.html (enables the resume command + download buttons)
 
   // Shown on the contact workspace.
   status: "building cross-chain infra at Euclid Protocol · DMs open",
