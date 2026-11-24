@@ -185,7 +185,7 @@ button.pill:hover { transform: translateY(-1px) scale(1.05); color: var(--fg); b
 .screen[data-ws="1"] { grid-template-columns: 1.65fr 1fr; grid-template-rows: 1.2fr 1fr 96px; grid-template-areas: "s0 s1" "s0 s2" "s0 s3"; }
 .screen[data-ws="2"] { grid-template: "s0" 1fr / 1fr; }
 .screen[data-ws="3"] { grid-template: "s0 s1" 1fr / 1.25fr 1fr; }
-.screen[data-ws="4"] { grid-template: "s0 s1" 1fr / 1.2fr 1fr; }
+.screen[data-ws="4"] { grid-template: "s0 s1" 1.35fr "s0 s2" 1fr / 1.2fr 1fr; }
 
 .tile { min-height: 0; min-width: 0; display: flex; position: relative; grid-area: var(--slot); }
 .ph {   /* drop target preview while dragging */
@@ -362,7 +362,50 @@ a.cmd:hover { text-decoration: none; background: color-mix(in srgb, var(--accent
 .cmsg { color: var(--fg); }
 
 /* ───────────── contact ───────────── */
-#contact { font-size: 1.1em; }
+#contact { font-size: 1.05em; }
+.ct-big { font-size: .85em; }
+.ct-status {
+  margin: 14px 0 16px; padding: 10px 14px; border-radius: calc(var(--radius) * .7);
+  background: color-mix(in srgb, var(--fg) 5%, transparent); border-left: 3px solid var(--accent);
+  animation: lineIn .5s var(--ease-out) both .1s;
+}
+.ct-status div { margin: 3px 0; }
+.ct-k { display: inline-block; width: 11ch; color: var(--dim); }
+.ct-live { display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); animation: pulse 1.6s infinite; }
+.ct-link { position: relative; display: inline-block; transition: transform .3s var(--ease), color .2s; }
+.ct-link:hover { transform: translateX(4px); color: var(--accent); text-decoration: none; }
+.ct-link:hover::before, .ct-link:hover::after {   /* rgb-split glitch on hover */
+  content: attr(data-text); position: absolute; left: 0; top: 0; pointer-events: none; text-shadow: none;
+}
+.ct-link:hover::before { color: var(--err); transform: translate(-2px, 0); clip-path: inset(0 0 55% 0); animation: glitch .4s steps(2) infinite; opacity: .8; }
+.ct-link:hover::after { color: var(--accent2); transform: translate(2px, 0); clip-path: inset(50% 0 0 0); animation: glitch .3s steps(2) infinite reverse; opacity: .8; }
+@keyframes glitch { 50% { transform: translate(3px, -1px); } }
+.ct-copy {
+  margin-left: 6px; padding: 0 6px; border: 0; border-radius: 6px; cursor: pointer; opacity: 0; color: var(--dim);
+  background: color-mix(in srgb, var(--fg) 8%, transparent); transition: opacity .2s, color .2s, transform .2s var(--ease);
+}
+.cline:hover .ct-copy { opacity: 1; }
+.ct-copy:hover { color: var(--accent); transform: scale(1.15); }
+.ct-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 10px; }
+.ct-actions .pill { height: 30px; color: var(--fg); text-decoration: none; }
+.ct-cta { background: linear-gradient(90deg, var(--accent), var(--accent2)) !important; color: var(--bg) !important; font-weight: 800; text-shadow: none; }
+.ct-exit { margin-top: 8px; }
+#m-form { display: flex; flex-direction: column; gap: 8px; height: 100%; }
+#m-form label { display: flex; align-items: baseline; gap: 1ch; }
+#m-form label > span { width: 9ch; flex: none; }
+#m-form input, #m-form select, #m-form textarea {
+  flex: 1; min-width: 0; font: inherit; color: var(--fg); padding: 4px 8px; border-radius: 6px; outline: none;
+  background: color-mix(in srgb, var(--fg) 5%, transparent); border: 1px solid color-mix(in srgb, var(--fg) 12%, transparent);
+  transition: border-color .2s, box-shadow .2s; caret-color: var(--accent);
+}
+#m-form select option { background: var(--bg); }
+#m-form input:focus, #m-form select:focus, #m-form textarea:focus { border-color: var(--accent); box-shadow: 0 0 14px var(--glow); }
+#m-form .m-msg { flex: 1; align-items: stretch; }
+#m-form textarea { resize: none; min-height: 70px; }
+.m-foot { display: flex; align-items: center; justify-content: space-between; }
+.m-prog { min-height: 1.5em; color: var(--accent); }
+.m-prog:not(:empty)::after { content: "▋"; animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
 .cline { margin: 8px 0; animation: lineIn .4s var(--ease-out) both; animation-delay: calc(var(--n) * 90ms); }
 .cl-label { color: var(--warn); }
 #cow { color: var(--fg); cursor: pointer; white-space: pre; transition: color .3s; }

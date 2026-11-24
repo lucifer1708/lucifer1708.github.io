@@ -150,7 +150,7 @@
     const fs = parseFloat(getComputedStyle(o).fontSize) || 13;
     return Math.floor(o.clientWidth / (fs * 0.6)) - 1;
   };
-  const bigText = (str) => {
+  const bigText = (str, maxCols) => {
     const words = str.toUpperCase().split(/\s+/).filter(Boolean);
     const render = (ws) => {
       const rows = ['', '', '', '', ''];
@@ -164,7 +164,7 @@
       return rows.map((r) => r.trimEnd()).join('\n');
     };
     const full = render(words);
-    if (full.split('\n')[0].length <= termCols()) return full;
+    if (full.split('\n')[0].length <= (maxCols ?? termCols())) return full;
     return words.map((w) => render([w])).join('\n\n');
   };
 
@@ -287,6 +287,7 @@
       </section>
       <section class="screen" data-ws="4">
         <div class="tile">${win('~/contact.sh', '<div id="contact"></div>')}</div>
+        <div class="tile">${win('~/msg.sh — write me', '<div id="mail"></div>')}</div>
         <div class="tile">${win('fortune | cowsay', '<pre id="cow" title="click for another fortune"></pre>')}</div>
       </section>`;
     buildHtop(); buildRanger(); buildVim(); buildGit(); buildContact(); newFortune();
@@ -664,12 +665,74 @@
   }
 
   /* contact */
+  const EMAIL = (C.contact.find((c) => c.url.startsWith('mailto:'))?.url || '').slice(7);
+  function localTime() {
+    const tz = C.timezone || 'UTC', now = new Date();
+    const time = now.toLocaleTimeString('en-GB', { timeZone: tz });
+    const zone = now.toLocaleTimeString('en-US', { timeZone: tz, timeZoneName: 'short' }).split(' ').pop();
+    const h = +now.toLocaleString('en-GB', { timeZone: tz, hour: '2-digit', hourCycle: 'h23' });
+    const mood = h < 7 ? '🌙 probably asleep' : h < 10 ? '☕ booting up' : h < 19 ? '⚡ likely online' : h < 23 ? '🌆 winding down' : '🌙 probably asleep';
+    return `<b>${time}</b> <span class="dim">${esc(zone)} · ${mood}</span>`;
+  }
+  async function copyText(text, what) {
+    try { await navigator.clipboard.writeText(text); notify('Copied to clipboard', `${esc(what)} → <b>${esc(text)}</b>`, 2500); }
+    catch { notify('Copy failed', 'clipboard blocked — select it manually', 2500); }
+  }
   function buildContact() {
-    $('#contact').innerHTML =
-      `<div class="dim">#!/usr/bin/env bash</div><div class="dim"># pick a channel. avg response time: faster than CI.</div><br>` +
-      C.contact.map((c, i) => `<div class="cline" style="--n:${i}"><span class="accent">$</span> open <span class="cl-label">--${esc(c.label)}</span> <a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.text)}</a></div>`).join('') +
-      (C.resume ? `<div class="cline"><span class="accent">$</span> wget <a href="${esc(C.resume)}" target="_blank" rel="noopener">resume.pdf</a></div>` : '') +
-      `<br><div class="dim">exit 0</div>`;
+    $('#contact').innerHTML = `
+      <span class="big ct-big">${esc(bigText('say hi', 99))}</span>
+      <div class="dim"># pick a channel. avg response time: faster than CI.</div>
+      <div class="ct-status">
+        <div><span class="ct-k">status</span><span class="ct-live"></span>${esc(C.status || 'open to interesting work')}</div>
+        <div><span class="ct-k">local time</span><span id="ct-time">${localTime()}</span></div>
+        <div><span class="ct-k">replies</span>${esc(C.replyTime || 'usually within 24h')}</div>
+        <div><span class="ct-k">based in</span>${esc(C.location)}</div>
+      </div>
+      ${C.contact.map((c, i) => `
+        <div class="cline" style="--n:${i}">
+          <span class="accent">$</span> open <span class="cl-label">--${esc(c.label)}</span>
+          <a class="ct-link" href="${esc(c.url)}" target="_blank" rel="noopener" data-text="${esc(c.text)}">${esc(c.text)}</a>
+          <button class="ct-copy" data-copy="${esc(c.url.startsWith('mailto:') ? c.url.slice(7) : c.url)}" data-what="${esc(c.label)}" title="copy ${esc(c.label)}">⧉</button>
+        </div>`).join('')}
+      ${C.resume ? `<div class="cline"><span class="accent">$</span> wget <a href="${esc(C.resume)}" target="_blank" rel="noopener">resume.pdf</a></div>` : ''}
+      <div class="ct-actions">
+        ${EMAIL ? `<button class="pill ct-cta" data-copy="${esc(EMAIL)}" data-what="email">⧉ copy email</button>` : ''}
+        <button class="pill" id="ct-compose">✉ write a message</button>
+        ${C.resume ? `<a class="pill" href="${esc(C.resume)}" target="_blank" rel="noopener">⇩ resume</a>` : ''}
+      </div>
+      <div class="dim ct-exit">exit 0</div>`;
+    $('#contact').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-copy]');
+      if (b) copyText(b.dataset.copy, b.dataset.what);
+      if (e.target.closest('#ct-compose')) { focusWin($('#mail').closest('.tile')); $('#m-name').focus(); }
+    });
+
+    $('#mail').innerHTML = `
+      <form id="m-form" autocomplete="on">
+        <label><span class="accent">from:</span><input id="m-name" name="name" placeholder="your name" required maxlength="80"></label>
+        <label><span class="accent">reply-to:</span><input id="m-from" name="email" type="email" placeholder="you@somewhere.dev" maxlength="120"></label>
+        <label><span class="accent">subject:</span><select id="m-subj">
+          <option>👋 just saying hi</option><option>💼 job opportunity</option><option>🤝 let's collaborate</option><option>🐛 found a bug on your site</option><option>☕ coffee chat</option>
+        </select></label>
+        <label class="m-msg"><span class="accent">message:</span><textarea id="m-body" rows="5" placeholder="type here… (Ctrl+Enter to send)" required maxlength="2000"></textarea></label>
+        <div class="m-foot"><span class="dim" id="m-count">0 / 2000</span><button class="pill ct-cta" type="submit">⏎ send</button></div>
+        <div class="m-prog" id="m-prog"></div>
+      </form>`;
+    const form = $('#m-form'), body = $('#m-body');
+    body.addEventListener('input', () => ($('#m-count').textContent = `${body.value.length} / 2000`));
+    body.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) form.requestSubmit(); });
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!EMAIL) return notify('No email configured', 'add a mailto: entry to contact in config.js', 3000);
+      const prog = $('#m-prog');
+      for (const step of ['encrypting with ROT26…', 'bribing the SMTP daemon…', 'handing off to your mail client…']) {
+        prog.textContent = step; await sleep(380 * dur());
+      }
+      prog.textContent = '';
+      const text = `${body.value}\n\n— ${$('#m-name').value}${$('#m-from').value ? ` <${$('#m-from').value}>` : ''}`;
+      location.href = `mailto:${EMAIL}?subject=${encodeURIComponent($('#m-subj').value)}&body=${encodeURIComponent(text)}`;
+      notify('Draft ready ✉', 'your mail client should have opened with the message filled in.', 4000);
+    });
   }
 
   /* cowsay */
@@ -1079,8 +1142,8 @@ Call Trace:
       if (e.key === 'Escape' && settingsOpen()) { closeSettings(); return; }
       if (e.altKey && (e.code === 'ArrowRight' || e.code === 'ArrowLeft')) { e.preventDefault(); gotoWs(((curWs - 1 + (e.code === 'ArrowRight' ? 1 : -1) + WS.length) % WS.length) + 1); return; }
       if (e.key === 'Escape' && $('.screen.active .tile.fs')) { toggleFs($('.screen.active .tile.fs')); return; }
-      const typing = document.activeElement === inp();
-      if (typing) return;
+      const ae = document.activeElement;
+      if (ae === inp() || ae?.matches?.('input, textarea, select, [contenteditable]')) return;
       if (e.key === '/') { e.preventDefault(); openLauncher(); return; }
       if (/^[1-4]$/.test(e.key)) { gotoWs(+e.key); return; }
       if (curWs === 2) {
@@ -1107,6 +1170,7 @@ Call Trace:
     $('#cpu').innerHTML = `CPU <b>${String(Math.round(rand(3, 38))).padStart(2)}%</b>`;
     $('#mem').innerHTML = `MEM <b>${rand(3.8, 4.6).toFixed(1)}G</b>/16G`;
     $$('.uptime').forEach((e) => (e.textContent = uptime()));
+    const ct = $('#ct-time'); if (ct) ct.innerHTML = localTime();
   }
 
   /* ═════════════ start ═════════════ */

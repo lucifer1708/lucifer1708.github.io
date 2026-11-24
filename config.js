@@ -92,6 +92,11 @@ window.PORTFOLIO = {
 
   resume: "", // e.g. "resume.pdf" (drop the file next to index.html)
 
+  // Shown on the contact workspace.
+  status: "open to interesting work",
+  timezone: "UTC",            // IANA name, e.g. "Asia/Kolkata", "Europe/Berlin"
+  replyTime: "usually within 24h",
+
   // Random theme-matched wallpaper from wallhaven.cc on every load / theme change.
   // Pool lives in wallpapers.json (refreshed daily by .github/workflows/wallpapers.yml).
   wallpapers: true,
