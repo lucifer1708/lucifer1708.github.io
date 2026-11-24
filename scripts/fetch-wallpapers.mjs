@@ -1,4 +1,4 @@
-// Pulls a random, SFW, theme-matched wallpaper pool from wallhaven.cc into wallpapers.json.
+// Pulls a random, SFW, anime-only, theme-matched wallpaper pool from wallhaven.cc into wallpapers.json.
 // wallhaven's API sends no CORS headers, so the browser can't query it directly; the site
 // instead picks a random entry from this pool on every load / theme change and hotlinks the image.
 //
@@ -20,7 +20,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function search(params) {
   const qs = new URLSearchParams({
-    sorting: 'random', purity: '100', categories: '110', atleast: '1920x1080', ratios: 'landscape', ...params,
+    // categories 010 = anime only · purity 100 = SFW only
+    sorting: 'random', purity: '100', categories: '010', atleast: '1920x1080', ratios: 'landscape', ...params,
   });
   const res = await fetch(`https://wallhaven.cc/api/v1/search?${qs}`, { headers: { 'User-Agent': 'portfolio-wallpaper-sync' } });
   if (!res.ok) throw new Error(`wallhaven ${res.status} for ${qs}`);
@@ -32,7 +33,7 @@ for (const [theme, queries] of Object.entries(THEMES)) {
   const pool = new Map();
   for (const q of queries) {
     for (const w of await search(q)) {
-      if (w.purity !== 'sfw' || w.file_size > MAX_BYTES) continue;
+      if (w.purity !== 'sfw' || w.category !== 'anime' || w.file_size > MAX_BYTES) continue;
       pool.set(w.id, { id: w.id, full: w.path, thumb: w.thumbs.large, page: w.short_url, res: w.resolution });
     }
     await sleep(1500); // stay well under the 45 req/min limit
