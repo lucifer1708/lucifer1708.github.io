@@ -1408,7 +1408,7 @@
     cv.width = innerWidth; cv.height = innerHeight;
     const fs = 16, cols = Math.ceil(cv.width / fs);
     const drops = Array.from({ length: cols }, () => rand(-60, 0));
-    const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホ0123456789ABCDEF<>/{}$#*+=';
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789<>/{}$#*+=';
     const color = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
     ctx.fillStyle = '#000'; ctx.globalAlpha = 1; ctx.fillRect(0, 0, cv.width, cv.height);
     cv.classList.add('on'); mxStart = Date.now();
