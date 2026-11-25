@@ -175,6 +175,16 @@
     if (full.split('\n')[0].length <= (maxCols ?? termCols())) return full;
     return words.map((w) => render([w])).join('\n\n');
   };
+  /* Draw the banner as SVG blocks: phones often lack the █ glyph and fall back to a
+     font with other widths, which garbles text-based block art. */
+  let bigId = 0;
+  const bigHTML = (str, maxCols, cls = '') => {
+    const rows = bigText(str, maxCols).split('\n'), cols = Math.max(...rows.map((r) => r.length));
+    const W = 0.6, H = 1.05, id = 'bg' + ++bigId;
+    let d = '';
+    rows.forEach((r, y) => r.replace(/█+/g, (run, x) => { d += `M${(x * W).toFixed(2)} ${(y * H).toFixed(2)}h${(run.length * W).toFixed(2)}v${H}h-${(run.length * W).toFixed(2)}z`; return run; }));
+    return `<svg class="big ${cls}" role="img" aria-label="${esc(str)}" viewBox="0 0 ${(cols * W).toFixed(2)} ${(rows.length * H).toFixed(2)}" style="width:${(cols * W).toFixed(2)}em" preserveAspectRatio="xMinYMin meet"><defs><linearGradient id="${id}" x1="0" x2="1" y1="0" y2="0"><stop offset="0" style="stop-color:var(--accent)"/><stop offset=".5" style="stop-color:var(--accent2)"/><stop offset="1" style="stop-color:var(--accent)"/></linearGradient></defs><path fill="url(#${id})" d="${d}"/></svg>`;
+  };
 
   /* ═════════════ boot ═════════════ */
   function bootLines() {
@@ -850,7 +860,7 @@
   }
   function buildContact() {
     $('#contact').innerHTML = `
-      <span class="big ct-big">${esc(bigText('say hi', 99))}</span>
+      ${bigHTML('say hi', 99, 'ct-big')}
       <div class="dim"># pick a channel. avg response time: faster than CI.</div>
       <div class="ct-status">
         <div><span class="ct-k">status</span><span class="ct-live"></span>${esc(C.status || 'open to interesting work')}</div>
@@ -1104,7 +1114,7 @@
     hack: { d: 'hack the mainframe', async f() { await hack(); } },
     cowsay: { d: 'cowsay [text]', f(a) { print(esc(cowsay(a.join(' ') || fortune()))); } },
     fortune: { d: 'random wisdom', f() { print(esc(fortune())); } },
-    banner: { d: 'banner <text>', f(a) { print(`<span class="big">${esc(bigText(a.join(' ') || C.name))}</span>`); } },
+    banner: { d: 'banner <text>', f(a) { print(bigHTML(a.join(' ') || C.name)); } },
     ws: { d: `switch workspace: ws <1-${WS_MAX}>`, f(a) { if (!gotoWs(a[0])) print(`usage: ws <1-${WS_MAX}>  (` + WS.map((w) => `${w.n}:${w.name}`).join(' ') + ')', 'err'); } },
     history: { d: '', f() { print(hist.map((h, i) => `${String(i + 1).padStart(4)}  ${esc(h)}`).join('\n')); } },
     echo: { d: '', f(a) { print(esc(a.join(' ').replace(/\$USER/g, USER).replace(/\$HOME/g, '/home/' + USER))); } },
@@ -1305,7 +1315,7 @@
     42: { d: '', f() { print('The answer. Now… what was the question?'); } },
     hire: { d: '', f() {
       confetti(240);
-      print(`<span class="big">${esc(bigText('HIRED!'))}</span>`);
+      print(bigHTML('HIRED!'));
       print(`excellent decision. let's talk → ${cmdLink('contact')}`);
       setTimeout(() => gotoWs(WS_MAX), 1600);
     } },
@@ -1428,7 +1438,7 @@
     }
     for (let i = 0; i < 10; i++) { print(`<span class="dim">${Array.from({ length: 6 }, () => Math.random().toString(16).slice(2, 10)).join(' ')}</span>`); await sleep(35); }
     shake(400);
-    print(`<span class="big">${esc(bigText('ACCESS GRANTED'))}</span>`);
+    print(bigHTML('ACCESS GRANTED'));
     print('<span class="dim">(relax, nothing was hacked. but you\'re clearly hireable.)</span>');
     notify('⚠ Intrusion detected', 'just kidding. root access granted to <b>guest</b>.', 3500);
   }
@@ -1566,7 +1576,7 @@ Call Trace:
         : `press <kbd>1</kbd>–<kbd>${WS_MAX}</kbd> or use the tabs up top to switch pages · <kbd>Alt+Space</kbd> launcher · <kbd>?</kbd> all keybinds · drag windows onto each other to swap`, 7000), 1400);
     }
 
-    print(`<span class="big">${esc(bigText(C.name))}</span>`);
+    print(bigHTML(C.name));
     print(`Welcome to <b class="accent">PortfolioOS 1.0 LTS</b> (GNU/Linux ${KERNEL} x86_64)
 
  <span class="accent">*</span> ${esc(C.role)} · ${esc(C.location)}
