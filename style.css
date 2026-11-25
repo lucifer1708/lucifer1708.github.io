@@ -665,6 +665,20 @@ input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius
 @keyframes drain { to { transform: scaleX(0); } }
 
 /* ───────────── matrix + effects ───────────── */
+#holly {
+  position: fixed; inset: 0; z-index: 86; display: flex; flex-direction: column; background: #050608; color: var(--fg);
+  font-size: 11.5px; opacity: 0; transition: opacity .35s; text-shadow: none;
+}
+#holly.on { opacity: 1; }
+.hy-grid { flex: 1; min-height: 0; display: grid; gap: 1px; background: color-mix(in srgb, var(--accent) 45%, transparent); grid-auto-rows: 1fr; }
+.hy-pane { display: flex; flex-direction: column; min-height: 0; min-width: 0; background: #050608; }
+.hy-pane header { flex: none; padding: 2px 8px; color: var(--bg); background: color-mix(in srgb, var(--accent) 80%, #000); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hy-pane pre { flex: 1; min-height: 0; margin: 0; padding: 4px 8px; overflow: hidden; white-space: pre; line-height: 1.35; }
+.hy-bar { flex: none; display: flex; gap: 10px; align-items: center; padding: 3px 8px; background: color-mix(in srgb, var(--accent) 85%, #000); color: var(--bg); font-weight: 700; white-space: nowrap; overflow: hidden; }
+.hy-tabs { flex: 1; overflow: hidden; text-overflow: ellipsis; font-weight: 400; }
+.hy-tabs .on { font-weight: 800; }
+.hy-r { opacity: .85; }
+@media (max-width: 700px) { .hy-r { display: none; } }
 #matrix { position: fixed; inset: 0; z-index: 85; pointer-events: none; opacity: 0; transition: opacity .5s; }
 #matrix.on { opacity: 1; }
 html.party body { animation: hue 2.5s linear infinite; }

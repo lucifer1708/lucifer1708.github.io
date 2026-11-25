@@ -998,7 +998,7 @@
   const contactText = () => C.contact.map((c) => `${c.label.padEnd(10)} ${c.text}`).join('\n');
   const SECRET = [
     '🔑 you found the secret file.', '',
-    '  commands  → hack · matrix · sl · flip · gravity · do a barrel roll · lolcat · hire',
+    '  commands  → hack · hollywood · matrix · sl · flip · gravity · do a barrel roll · lolcat · hire',
     '              fortune | lolcat · sudo make me a sandwich · :(){ :|:& };: · xyzzy · lock',
     '  mouse     → pet the penguin · click the >_ logo 5× fast · shake a window while dragging',
     '  keyboard  → ↑ ↑ ↓ ↓ ← → ← → b a',
@@ -1320,6 +1320,7 @@
       setTimeout(() => gotoWs(WS_MAX), 1600);
     } },
     lock: { d: '', f() { setTimeout(lockScreen, 200); } },
+    hollywood: { d: '', f: hollywood },
     confetti: { d: '', f() { confetti(); } },
   };
 
@@ -1428,6 +1429,65 @@
     print('<span class="dim">wake up, neo… (press any key to exit)</span>');
   }
 
+  /* hollywood: a tmux wall of busy-looking hacker panes (after the Ubuntu `hollywood` package) */
+  let stopHolly = null, hyStart = 0;
+  let srcLines = null;
+  async function hollywood() {
+    if (stopHolly) stopHolly();
+    if (!srcLines) {
+      try { srcLines = (await (await fetch('main.js')).text()).split('\n').filter((l) => l.trim()); } catch { srcLines = ['// source unavailable']; }
+    }
+    const hx = (n) => Array.from({ length: n }, () => ((Math.random() * 256) | 0).toString(16).padStart(2, '0'));
+    const pick = (a) => a[(Math.random() * a.length) | 0];
+    const ts = () => new Date().toTimeString().slice(0, 8);
+    const ip = () => Array.from({ length: 4 }, () => (Math.random() * 255) | 0).join('.');
+    let addr = (Math.random() * 0xfffff) | 0, line = (Math.random() * srcLines.length) | 0, up = 0;
+    const SVC = ['kernel', 'sshd', 'nginx', 'nats', 'k8s-api', 'argocd', 'otel-collector', 'postgres', 'clickhouse', 'geth'];
+    const MSG = ['connection accepted', 'handshake complete', 'cache miss, refetching', 'leader elected', 'reconciling deployment', 'span exported', 'block imported', 'checkpoint written', 'TLS session resumed', 'GC pause 1.2ms', 'rebalancing partitions', 'retrying with backoff'];
+    const GEN = [
+      { t: 'hexdump -C /dev/mem', f: () => { const b = hx(16); addr += 16; return `<span class="dim">${addr.toString(16).padStart(8, '0')}</span>  ${b.slice(0, 8).join(' ')}  ${b.slice(8).join(' ')}  <span class="accent">|${b.map((x) => { const c = parseInt(x, 16); return c > 32 && c < 127 ? esc(String.fromCharCode(c)) : '.'; }).join('')}|</span>`; } },
+      { t: 'vim main.js', f: () => { line = (line + 1) % srcLines.length; return `<span class="dim">${String(line + 1).padStart(4)}</span> ${esc(srcLines[line].slice(0, 90))}`; } },
+      { t: 'journalctl -f', f: () => { const s = pick(SVC), lv = Math.random(); return `<span class="dim">${ts()}</span> <span class="accent2">${s}</span>[${(Math.random() * 9000 + 100) | 0}]: ${lv > .93 ? '<span class="err">ERROR</span> ' : lv > .85 ? '<span class="warn">WARN</span> ' : ''}${pick(MSG)}`; } },
+      { t: 'tcpdump -i eth0', f: () => `<span class="dim">${ts()}.${String((Math.random() * 1e6) | 0).padStart(6, '0')}</span> IP ${ip()}.${(Math.random() * 60000 + 1024) | 0} &gt; ${ip()}.${pick([22, 80, 443, 4222, 5432, 8545])}: Flags [<span class="accent">${pick(['S', 'P.', '.', 'F.', 'S.'])}</span>], seq ${(Math.random() * 4e9) | 0}, len ${(Math.random() * 1400) | 0}` },
+      { t: 'sha256sum /usr/bin/*', f: () => `<span class="accent">${hx(32).join('')}</span>  <span class="dim">/usr/bin/${pick(['go', 'cargo', 'kubectl', 'helm', 'nvim', 'zsh', 'git', 'docker', 'nats', 'psql', 'curl', 'jq'])}</span>` },
+      { t: 'htop', f: () => { up++; const c = Array.from({ length: 4 }, (_, i) => { const v = (Math.random() * 100) | 0; return `${i} [<span class="${v > 80 ? 'err' : v > 50 ? 'warn' : 'accent'}">${'|'.repeat(v / 6.25)}</span>${' '.repeat(16 - ((v / 6.25) | 0))}] ${String(v).padStart(3)}%`; }); return c.join('  ') + `  <span class="dim">up ${up}s</span>`; } },
+      { t: 'cargo build --release', f: () => `   <span class="accent">Compiling</span> ${pick(['tokio', 'serde', 'cosmwasm-std', 'axum', 'hyper', 'tonic', 'prost', 'rayon', 'clap', 'tracing'])} v${(Math.random() * 3) | 0}.${(Math.random() * 40) | 0}.${(Math.random() * 20) | 0}` },
+      { t: 'kubectl get pods -w', f: () => `${pick(['api', 'indexer', 'relayer', 'worker', 'gateway'])}-${hx(3).join('').slice(0, 5)}-${hx(3).join('').slice(0, 5)}   1/1   <span class="${Math.random() > .9 ? 'warn">ContainerCreating' : 'accent">Running'}</span>   ${(Math.random() * 3) | 0}   ${(Math.random() * 59) | 0}m` },
+    ];
+    const box = document.createElement('div');
+    box.id = 'holly';
+    const cols = Math.max(1, Math.min(3, Math.floor(innerWidth / 330))), rows = Math.max(2, Math.min(cols === 1 ? 3 : 2, Math.floor(innerHeight / 240)));
+    const panes = cols * rows;   // always a full grid, no empty corners
+    box.innerHTML = `<div class="hy-grid" style="grid-template-columns:repeat(${cols},minmax(0,1fr))">${Array.from({ length: panes }, () => '<section class="hy-pane"><header></header><pre></pre></section>').join('')}</div>
+      <footer class="hy-bar"><span class="hy-s">[hollywood]</span> <span class="hy-tabs"></span><span class="hy-r">press any key to exit · ${esc(HOST)}</span></footer>`;
+    document.body.appendChild(box);
+    const P = [...box.querySelectorAll('.hy-pane')];
+    const assign = () => {
+      const order = GEN.slice().sort(() => Math.random() - .5);
+      P.forEach((p, i) => { p._g = order[i % order.length]; p.querySelector('header').textContent = `${i}: ${p._g.t}`; p.querySelector('pre').innerHTML = ''; });
+      box.querySelector('.hy-tabs').innerHTML = P.map((p, i) => `<span${i === 0 ? ' class="on"' : ''}>${i}:${esc(p._g.t.split(' ')[0])}</span>`).join(' ');
+    };
+    assign();
+    const tick = setInterval(() => P.forEach((p) => {
+      if (Math.random() < .35) return;   // uneven pacing looks busier
+      const pre = p.querySelector('pre'), d = document.createElement('div');
+      d.innerHTML = p._g.f();
+      pre.appendChild(d);
+      while (pre.childElementCount > 60) pre.firstChild.remove();
+      pre.scrollTop = pre.scrollHeight;
+    }), 90);
+    const shuffle = setInterval(assign, 9000);
+    hyStart = Date.now();
+    requestAnimationFrame(() => box.classList.add('on'));
+    const stop = () => {
+      clearInterval(tick); clearInterval(shuffle); stopHolly = null;
+      box.classList.remove('on'); setTimeout(() => box.remove(), 400);
+      print('<span class="dim">^C — back to reality. (no servers were harmed)</span>');
+    };
+    stopHolly = stop;
+    print('<span class="dim">launching hollywood… press any key or tap to exit</span>');
+  }
+
   async function hack() {
     for (const s of ['Initializing exploit framework', 'Bypassing firewall', 'Brute-forcing mainframe', 'Injecting payload', 'Covering tracks']) {
       const l = print();
@@ -1497,6 +1557,7 @@ Call Trace:
     addEventListener('keydown', (e) => {
       if (locked) { e.preventDefault(); unlockScreen(); return; }
       if (stopMatrix && Date.now() - mxStart > 400) { stopMatrix(); return; }
+      if (stopHolly) { e.preventDefault(); if (Date.now() - hyStart > 600) stopHolly(); return; }
       if ((e.altKey && e.code === 'Space') || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k')) {
         e.preventDefault(); launcherOpen() ? closeLauncher() : openLauncher(); return;
       }
@@ -1526,7 +1587,7 @@ Call Trace:
         e.preventDefault(); inp().value += e.key; inp().focus({ preventScroll: true });
       }
     });
-    addEventListener('pointerdown', (e) => { ptr = { x: e.clientX, y: e.clientY }; if (stopMatrix && Date.now() - mxStart > 400) stopMatrix(); });
+    addEventListener('pointerdown', (e) => { ptr = { x: e.clientX, y: e.clientY }; if (stopMatrix && Date.now() - mxStart > 400) stopMatrix(); if (stopHolly && Date.now() - hyStart > 600) stopHolly(); });
     const wall = $('#wall');
     addEventListener('pointermove', (e) => {
       ptr = { x: e.clientX, y: e.clientY };

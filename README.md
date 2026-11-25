@@ -70,6 +70,6 @@ To change which colours or search terms each theme uses, edit `THEMES` in the sc
 - **Fullscreen**: the ⛶ button in the bar, **Alt+Enter**, the launcher, or the `fullscreen` command puts the whole site in browser fullscreen. Esc exits. The button hides itself on browsers without fullscreen support (iPhone Safari).
 - CRT scanlines and flicker, off by default. Turn them on or off with `crt` or in settings.
 - Easter eggs (spoilers: `cat .secret`):
-  - Terminal commands: `matrix`, `hack`, `sl`, `flip`, `gravity`, `do a barrel roll`, `lolcat`, `fortune | lolcat`, `hire`, `:(){ :|:& };:`, `sudo make me a sandwich`, `sudo rm -rf /`, `xyzzy`, `lock`.
+  - Terminal commands: `matrix`, `hack`, `hollywood`, `sl`, `flip`, `gravity`, `do a barrel roll`, `lolcat`, `fortune | lolcat`, `hire`, `:(){ :|:& };:`, `sudo make me a sandwich`, `sudo rm -rf /`, `xyzzy`, `lock`.
   - Mouse: pet the penguin, click the `>_` logo five times quickly, or shake a window while dragging it.
   - Also: the Konami code, an idle lock screen after 90 seconds, and a message in the devtools console.
