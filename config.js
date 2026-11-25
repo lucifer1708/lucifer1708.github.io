@@ -155,7 +155,7 @@ window.PORTFOLIO = {
       ],
     },
     {
-      date: "Apr 2023 — May 2024", role: "Contract Backend Developer", org: "Athena Consulting", url: "https://www.athenaconsulting.io/",
+      date: "May 2023 — Present", role: "Contract Backend Developer", org: "Athena Consulting", url: "https://www.athenaconsulting.io/",
       note: [
         "Secure REST API for a web3 crypto-sharing platform, 50K+ API calls daily",
         "Auth0 + KYC for 1000+ users; CI/CD cut release cycles by 40%",
