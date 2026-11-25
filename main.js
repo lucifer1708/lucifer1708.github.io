@@ -632,10 +632,10 @@
   ];
   function scheduleTips() {
     if (!S.tips) return;
-    const first = !localStorage.getItem('seenTips');
+    if (localStorage.getItem('seenTips')) return;   // tips play on the first visit only
     localStorage.setItem('seenTips', '1');
-    const list = first ? TIPS.slice(0, 4) : [TIPS[(Math.random() * TIPS.length) | 0]];
-    list.forEach((t, i) => setTimeout(() => notify(`💡 Tip ${first ? `${i + 1}/${list.length}` : ''}`, t, 6500), 9000 + i * 8000));
+    const list = TIPS.slice(0, 4);
+    list.forEach((t, i) => setTimeout(() => notify(`💡 Tip ${i + 1}/${list.length}`, t, 6500), 9000 + i * 8000));
   }
 
   /* mako-style notifications */
@@ -1558,7 +1558,13 @@ Call Trace:
     tickBar(); setInterval(tickBar, 1000);
     setTimeout(tickHtop, 900); setInterval(tickHtop, 1800);
     watchCava(); setInterval(tickCava, matchMedia('(pointer: coarse)').matches ? 190 : 95);
-    setTimeout(() => notify(`Welcome, guest 👋`, `press <kbd>1</kbd>–<kbd>${WS_MAX}</kbd> or use the tabs up top to switch pages · <kbd>Alt+Space</kbd> launcher · <kbd>?</kbd> all keybinds · drag windows onto each other to swap`, 7000), 1400);
+    if (!localStorage.getItem('welcomed')) {   // greet first-time visitors once, never again
+      localStorage.setItem('welcomed', '1');
+      const touch = matchMedia('(pointer: coarse)').matches;
+      setTimeout(() => notify(`Welcome, guest 👋`, touch
+        ? `tap the numbers up top to switch pages: ${WS.map((w) => w.name).join(' · ')}`
+        : `press <kbd>1</kbd>–<kbd>${WS_MAX}</kbd> or use the tabs up top to switch pages · <kbd>Alt+Space</kbd> launcher · <kbd>?</kbd> all keybinds · drag windows onto each other to swap`, 7000), 1400);
+    }
 
     print(`<span class="big">${esc(bigText(C.name))}</span>`);
     print(`Welcome to <b class="accent">PortfolioOS 1.0 LTS</b> (GNU/Linux ${KERNEL} x86_64)
