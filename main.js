@@ -59,7 +59,7 @@
     { k: 'wpblur', label: 'wallpaper blur', min: 0, max: 30, step: 1, unit: 'px', def: 0, css: '--wp-blur' },
   ];
   const TOGGLES = [
-    { k: 'crt', label: 'CRT scanlines', def: localStorage.getItem('crt') !== 'off', apply: (v) => html.classList.toggle('no-crt', !v) },
+    { k: 'crt', label: 'CRT scanlines', def: localStorage.getItem('crt') === 'on', apply: (v) => html.classList.toggle('no-crt', !v) },
     { k: 'wall', label: 'wallpaper', def: true, apply: (v, init) => {
       if (!v) { $$('#wall .wp').forEach((x) => x.remove()); html.classList.remove('has-wall'); }
       else if (!init) setWallpaper();

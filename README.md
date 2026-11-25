@@ -67,7 +67,7 @@ To change which colours or search terms each theme uses, edit `THEMES` in the sc
 - **Hints**: styled tooltips appear on hover. **?** opens a keybind cheatsheet. First-time visitors get a few tip notifications, starting with how to switch pages with 1–5.
 - Interactive terminal with tab completion, history (↑/↓), Ctrl+L, Ctrl+C, a virtual filesystem (`ls -la`, `cd`, `cat`) and clickable commands.
 - Six themes: `theme matrix | amber | vampire | arctic | retro | cyberpunk`. The choice is saved.
-- CRT scanlines and flicker. Turn them off or on with `crt`.
+- CRT scanlines and flicker, off by default. Turn them on or off with `crt` or in settings.
 - Easter eggs (spoilers: `cat .secret`):
   - Terminal commands: `matrix`, `hack`, `sl`, `flip`, `gravity`, `do a barrel roll`, `lolcat`, `fortune | lolcat`, `hire`, `:(){ :|:& };:`, `sudo make me a sandwich`, `sudo rm -rf /`, `xyzzy`, `lock`.
   - Mouse: pet the penguin, click the `>_` logo five times quickly, or shake a window while dragging it.
