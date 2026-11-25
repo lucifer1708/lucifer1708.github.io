@@ -179,6 +179,8 @@ button.pill:hover { transform: translateY(-1px) scale(1.05); color: var(--fg); b
 #workspaces button.active { background: linear-gradient(90deg, var(--accent), var(--accent2)); color: var(--bg); font-weight: 800; text-shadow: none; padding: 0 10px; }
 #workspaces button.active em { opacity: 1; font-weight: 800; }
 #workspaces button { height: 28px; padding: 0 11px; font-size: 13px; }
+#fs-btn .fs-off, .page-fs #fs-btn .fs-on { display: none; }
+.page-fs #fs-btn .fs-off { display: block; }
 #bar-title { color: var(--fg); max-width: 22vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 1440px) { #bar-title { display: none; } }
 

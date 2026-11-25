@@ -282,6 +282,11 @@
     $('#power').onclick = () => runInTerm('reboot');
     $('#wp-next').onclick = () => setWallpaper(undefined, true);
     $('#st-btn').onclick = toggleSettings;
+    $('#fs-btn').onclick = togglePageFs;
+    if (!fsEnabled()) $('#fs-btn').hidden = true;   // e.g. iPhone Safari has no Fullscreen API
+    const syncFs = () => { const on = !!fsElement(); html.classList.toggle('page-fs', on); $('#fs-btn').removeAttribute('title'); $('#fs-btn').dataset.tip = on ? 'exit fullscreen (Alt+Enter / Esc)' : 'fullscreen (Alt+Enter)'; };
+    document.addEventListener('fullscreenchange', syncFs);
+    document.addEventListener('webkitfullscreenchange', syncFs);
     buildSettings();
     $('#workspaces').onclick = (e) => { const b = e.target.closest('button'); if (b) gotoWs(+b.dataset.ws); };
     $('#screens').innerHTML = `
@@ -318,6 +323,18 @@
       $('.win-bar', t).addEventListener('dblclick', () => (t.classList.contains('floating') ? layoutTransition(s, () => unfloat(t)) : toggleFs(t)));
       bindDrag(t);
     }));
+  }
+
+  /* browser fullscreen (whole page, not a single window) */
+  const fsEnabled = () => !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+  const fsElement = () => document.fullscreenElement || document.webkitFullscreenElement;
+  function togglePageFs() {
+    if (!fsEnabled()) { notify('Fullscreen not supported', 'this browser has no fullscreen mode — try F11 or your browser menu.', 3000); return; }
+    const el = document.documentElement;
+    const p = fsElement()
+      ? (document.exitFullscreen || document.webkitExitFullscreen).call(document)
+      : (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
+    Promise.resolve(p).catch(() => notify('Fullscreen blocked', 'your browser refused — try F11 (or Ctrl+Cmd+F on a Mac).', 3000));
   }
 
   /* ═════════════ wm: focus, fullscreen, scramble ═════════════ */
@@ -571,6 +588,7 @@
     ['Alt+←/→', 'previous / next workspace'],
     ['Alt+Space · ⌘K · /', 'launcher — search everything'],
     ['Alt+S', 'settings: blur, corners, gaps, theme'],
+    ['Alt+Enter', 'fullscreen the whole site (Esc exits)'],
     ['Alt+W', 'next wallpaper'],
     ['drag title bar', 'drop onto another window to swap'],
     ['Shift+drag', 'float a window anywhere'],
@@ -636,6 +654,7 @@
     { icon: '🔒', label: 'Lock screen', hint: 'hyprlock', run: () => lockScreen() },
     { icon: '⌨', label: 'Keybind cheatsheet', hint: '?', run: () => openKeys() },
     { icon: '⚙', label: 'Settings — blur, radius, gaps, opacity…', hint: 'Alt+S', run: () => openSettings() },
+    { icon: '⛶', label: 'Fullscreen — hide the browser UI', hint: 'Alt+Enter', run: () => togglePageFs() },
     { icon: '🖼', label: 'Next wallpaper (wallhaven)', hint: 'Alt+W', run: () => setWallpaper(undefined, true) },
     { icon: '▤', label: 'Re-tile floating windows', hint: 'Alt+T', run: () => retile() || notify('Nothing to re-tile', 'drag a window by its title bar to float it.', 2500) },
     { icon: '▦', label: 'Toggle CRT scanlines', hint: 'crt', run: () => runInTerm('crt') },
@@ -1071,6 +1090,7 @@
       print(`crt: ${S.crt ? 'on — welcome back to 1985' : 'off — welcome to the future'}`);
     } },
     keys: { d: 'keybind cheatsheet', f() { openKeys(); } },
+    fullscreen: { d: 'toggle browser fullscreen', f() { togglePageFs(); print(fsElement() ? 'leaving fullscreen…' : 'going fullscreen — Esc or Alt+Enter to exit'); } },
     settings: { d: 'open the settings panel (blur, radius, gaps…)', f() { openSettings(); print('hyprctl: opening settings panel → <span class="dim">Alt+S toggles it</span>'); } },
     matrix: { d: 'follow the white rabbit', f() { matrix(); } },
     hack: { d: 'hack the mainframe', async f() { await hack(); } },
@@ -1338,7 +1358,7 @@
   function bindTerm() {
     const el = inp();
     el.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); if (busy) return; const v = el.value; el.value = ''; run(v); }
+      if (e.key === 'Enter' && !e.altKey) { e.preventDefault(); if (busy) return; const v = el.value; el.value = ''; run(v); }
       else if (e.key === 'ArrowUp') { e.preventDefault(); if (hi > 0) el.value = hist[--hi]; }
       else if (e.key === 'ArrowDown') { e.preventDefault(); if (hi < hist.length - 1) el.value = hist[++hi]; else { hi = hist.length; el.value = ''; } }
       else if (e.key === 'Tab') { e.preventDefault(); complete(); }
@@ -1466,6 +1486,7 @@ Call Trace:
       kIdx = e.key === KONAMI[kIdx] ? kIdx + 1 : e.key === KONAMI[0] ? 1 : 0;
       if (kIdx === KONAMI.length) { kIdx = 0; toggleParty(); }
       if (e.altKey && /^Digit[1-9]$/.test(e.code)) { e.preventDefault(); gotoWs(+e.code.slice(5)); return; }
+      if (e.altKey && e.key === 'Enter') { e.preventDefault(); togglePageFs(); return; }
       if (e.altKey && e.code === 'KeyF') { e.preventDefault(); toggleFs(focusedTile()); return; }
       if (e.altKey && e.code === 'KeyT') { e.preventDefault(); retile(); return; }
       if (e.altKey && e.code === 'KeyW') { e.preventDefault(); setWallpaper(undefined, true); return; }
