@@ -1521,6 +1521,9 @@ Call Trace:
   function tickBar() {
     const now = new Date();
     $('#clock').innerHTML = `<b><span class="ck-date">${now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} </span>${now.toTimeString().slice(0, 8)}</b>`;
+    const ck = $('#clock'), full = `${now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} · ${now.toLocaleTimeString('en-US', { timeZoneName: 'short' })} — your local time`;
+    ck.removeAttribute('title'); ck.dataset.tip = full;
+    if (ck.matches(':hover') && $('#tip').classList.contains('on')) $('#tip').textContent = full;   // keep an open tooltip ticking
     $('#cpu').innerHTML = `CPU <b>${String(Math.round(rand(3, 38))).padStart(2)}%</b>`;
     $('#mem').innerHTML = `MEM <b>${rand(3.8, 4.6).toFixed(1)}G</b>/16G`;
     $$('.uptime').forEach((e) => (e.textContent = uptime()));
