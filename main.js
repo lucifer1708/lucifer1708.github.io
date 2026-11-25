@@ -637,11 +637,11 @@
   const TIPS = [
     `Press ${WS.map((w) => `<kbd>${w.n}</kbd>`).join(' ')} (or <kbd>Alt</kbd>+number) or click the tabs up top: ${WS.map((w) => w.name).join(' · ')}.`,
     'Drag a window by its title bar onto another window to rearrange the tiling.',
+    '🥚 There are hidden commands and easter eggs. Type <kbd>cat .secret</kbd> in the terminal to see them.',
     'Open ⚙ settings (<kbd>Alt+S</kbd>) to change blur, corner radius, gaps and theme.',
-    'Press <kbd>?</kbd> any time for the full keybind cheatsheet.',
     'Hit <kbd>Alt+Space</kbd> for the launcher — it searches projects, themes and commands.',
     'Hover things — most of the UI has tooltips.',
-    'There are hidden commands. <span class="dim">cat .secret</span> is a good start.',
+    'Press <kbd>?</kbd> any time for the full keybind cheatsheet.',
   ];
   function scheduleTips() {
     if (!S.tips) return;
@@ -1033,7 +1033,7 @@
   const CMDS = {
     help: { d: 'list available commands', f() {
       const rows = Object.entries(CMDS).filter(([, c]) => c.d).map(([k, c]) => `  ${cmdLink(k)}${' '.repeat(Math.max(1, 12 - k.length))}<span class="dim">${esc(c.d)}</span>`);
-      print(`<b>Available commands</b> <span class="dim">(click or type)</span>\n${rows.join('\n')}\n\n<span class="dim">Tab autocompletes · ↑/↓ history · Ctrl+L clear · Alt+1..${WS_MAX} / Alt+←→ workspaces · Alt+Space launcher · Alt+F fullscreen · drag a title bar onto another window to swap, Shift+drag to float, Alt+T re-tile · there are hidden commands 👀</span>`);
+      print(`<b>Available commands</b> <span class="dim">(click or type)</span>\n${rows.join('\n')}\n\n<span class="dim">Tab autocompletes · ↑/↓ history · Ctrl+L clear · Alt+1..${WS_MAX} / Alt+←→ workspaces · Alt+Space launcher · Alt+F fullscreen · drag a title bar onto another window to swap, Shift+drag to float, Alt+T re-tile · there are hidden commands 👀</span>\n<span class="accent">🥚</span> psst — ${cmdLink('cat .secret')} lists the easter eggs`);
     } },
     about: { d: 'who is this person', f() { CMDS.cat.f(['~/about.md']); } },
     whoami: { d: 'print effective user', f() { print(`${esc(USER)}  <span class="dim"># ${esc(C.name)} — ${esc(C.role)}, ${esc(C.location)}</span>`); } },
@@ -1733,6 +1733,7 @@ Call Trace:
  <span class="accent">*</span> ${esc(C.tagline)}
  <span class="accent">*</span> Pages: ${WS.map((w) => `<b>${w.n}</b> ${w.label || w.name}`).join(' · ')} — press the number or click the tabs up top
  <span class="accent">*</span> Quick start: ${cmdLink('projects')} ${cmdLink('experience')} ${cmdLink('testimonials')} ${cmdLink('about')} ${cmdLink('skills')} ${cmdLink('contact')}
+ <span class="accent">🥚</span> Psst: this terminal has secrets — type ${cmdLink('cat .secret')} to see them
 `);
     await sleep(700);
     if (curWs === 1 && !busy) await typeCmd('help');
