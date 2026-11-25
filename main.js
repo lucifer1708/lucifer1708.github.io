@@ -1520,7 +1520,7 @@ Call Trace:
   /* status bar */
   function tickBar() {
     const now = new Date();
-    $('#clock').innerHTML = `<b>${now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} ${now.toTimeString().slice(0, 8)}</b>`;
+    $('#clock').innerHTML = `<b><span class="ck-date">${now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} </span>${now.toTimeString().slice(0, 8)}</b>`;
     $('#cpu').innerHTML = `CPU <b>${String(Math.round(rand(3, 38))).padStart(2)}%</b>`;
     $('#mem').innerHTML = `MEM <b>${rand(3.8, 4.6).toFixed(1)}G</b>/16G`;
     $$('.uptime').forEach((e) => (e.textContent = uptime()));

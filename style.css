@@ -684,6 +684,13 @@ body.glitch #screens { filter: contrast(1.6) saturate(2) hue-rotate(-40deg); }
 #panic .err { color: #ff3355; }
 
 /* ───────────── responsive ───────────── */
+/* the bar sheds its least useful pills as the window narrows so the icons never spill out */
+@media (max-width: 1360px) { #net, #mem { display: none; } }
+@media (max-width: 1200px) { #cpu, .ck-date { display: none; } }
+@media (max-width: 1060px) {
+  #workspaces button em { display: none; }
+  #workspaces button.active em { display: inline; }
+}
 @media (max-width: 900px) {
   body { overflow: auto; }
   #bar { margin: 6px 8px 0; }
@@ -699,6 +706,9 @@ body.glitch #screens { filter: contrast(1.6) saturate(2) hue-rotate(-40deg); }
   #workspaces button em { display: none; }
   #workspaces button.active em { display: inline; }
   .qnav kbd { display: none; }
+  #keys-btn, #wp-next { display: none; }
+  #bar { gap: 6px; }
+  .bar-left, .bar-right { gap: 4px; }
   #ranger { grid-template-columns: 1fr; }
   #r-list { border-right: 0; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 12px; }
   #r-prev { padding: 0; }
@@ -707,6 +717,10 @@ body.glitch #screens { filter: contrast(1.6) saturate(2) hue-rotate(-40deg); }
   .rz { display: none; }
   .win-bar { cursor: default; }
   #wall .wm-name { font-size: 30vw; }
+}
+@media (max-width: 560px) {
+  #workspaces button.active em, #clock { display: none !important; }
+  #workspaces button { padding: 0 9px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
