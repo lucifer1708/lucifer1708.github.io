@@ -72,6 +72,10 @@
   const SPECS = [...SLIDERS, ...TOGGLES];
   const S = Object.fromEntries(SPECS.map((s) => [s.k, s.def]));
   try { Object.assign(S, JSON.parse(localStorage.getItem('settings') || '{}')); } catch { /* corrupt → defaults */ }
+  if (localStorage.getItem('settingsV') !== '2') {   // v2: CRT became opt-in; drop the old saved "on" once
+    S.crt = SPECS.find((s) => s.k === 'crt').def;
+    localStorage.setItem('settings', JSON.stringify(S)); localStorage.setItem('settingsV', '2');
+  }
   const dur = () => 1 / S.speed;
   const fmt = (s, v) => (s.unit === '×' ? v.toFixed(2).replace(/0$/, '') + '×' : v + s.unit);
   function applySetting(k, init = false) {
@@ -113,7 +117,6 @@
       if (e.target.closest('#st-wall')) setWallpaper(undefined, true);
       if (e.target.closest('#st-reset')) {
         SPECS.forEach((s) => (S[s.k] = s.def === undefined ? true : s.def));
-        S.crt = true;
         localStorage.setItem('settings', JSON.stringify(S));
         SPECS.forEach((s) => applySetting(s.k));
         notify('Settings reset', 'back to factory hyprland.conf', 2000);

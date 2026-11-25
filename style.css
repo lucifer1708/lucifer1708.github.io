@@ -733,7 +733,7 @@ body.glitch #screens { filter: contrast(1.6) saturate(2) hue-rotate(-40deg); }
   }
   .win { background: color-mix(in srgb, var(--win) max(var(--win-op), 94%), var(--bg)); }
   #bar { background: color-mix(in srgb, var(--bg) 92%, transparent); }
-  .win.focus::before, #wall i, .big, .fetch .tux { animation: none !important; }
+  .win.focus::before, #wall i, .big, .fetch .tux, #crt { animation: none !important; }
   #wall i { filter: blur(60px); }
   .big { filter: none; }
 }
