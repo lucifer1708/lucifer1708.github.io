@@ -768,12 +768,43 @@
       : '<span class="dim">no testimonials yet.</span>';
   }
   const reviewsText = () => REVIEWS.map((r) => `"${r.quote}"\n  — ${r.name}, ${r.role} (${r.relation})`).join('\n\n');
+  /* experience: a plain-language timeline (the terminal `experience` command keeps the git-log look) */
+  const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+  function parseSpan(date) {
+    const [a = '', b = ''] = String(date).split(/\s*[—–-]\s*/);
+    const pt = (s) => {
+      if (/^(now|present|current)$/i.test(s.trim())) return null;
+      const m = s.trim().match(/^(?:([a-z]{3})[a-z]*\s+)?(\d{4})$/i);
+      return m ? { y: +m[2], m: m[1] ? MONTHS.indexOf(m[1].toLowerCase()) : -1 } : undefined;
+    };
+    const from = pt(a), to = b ? pt(b) : undefined, current = to === null;
+    let dur = '';
+    if (from && from.m >= 0 && (current || (to && to.m >= 0))) {
+      const now = new Date(), end = current ? { y: now.getFullYear(), m: now.getMonth() } : to;
+      const n = (end.y - from.y) * 12 + (end.m - from.m) + 1, y = Math.floor(n / 12), mo = n % 12;
+      dur = [y && `${y} yr${y > 1 ? 's' : ''}`, mo && `${mo} mo${mo > 1 ? 's' : ''}`].filter(Boolean).join(' ');
+    } else if (from && to) dur = `${to.y - from.y} yrs`;
+    return { label: String(date).replace(/\s*[—–-]\s*/, ' – ').replace(/\b(now|current)\b/i, 'Present'), dur, current };
+  }
+  const XP_KIND = { work: ['💼', 'Work'], leadership: ['🧭', 'Leadership'], education: ['🎓', 'Education'] };
+  const xpKind = (e) => e.type || (/b\.?tech|degree|university|school/i.test(e.role + e.org) ? 'education' : /secretary|coordinator|lead|club|society/i.test(e.role) ? 'leadership' : 'work');
   function buildGit() {
-    $('#gitlog').innerHTML = C.experience.map((e, i) => `
-      <div class="commit" style="--n:${i}"><span class="graph">*</span> <span class="sha">${hash7(e.role + e.org)}</span> ${i === 0 ? '<span class="ref">(<span class="head">HEAD -&gt; main</span>)</span> ' : ''}<b>${esc(e.role)}</b> <span class="dim">@</span> ${orgHTML(e)}
-        <div class="cmeta"><span class="graph">|</span> Date: ${esc(e.date)}</div>
-        ${notes(e).map((n) => `<div class="cmsg"><span class="graph">|</span>     ${esc(n)}</div>`).join('')}</div>`).join('') +
-      `<div class="commit" style="--n:${C.experience.length}"><span class="graph">*</span> <span class="sha">0000000</span> <b>Initial commit</b> <span class="dim">— printf("hello, world\\n");</span></div>`;
+    $('#gitlog').innerHTML = `<ol class="xp">${C.experience.map((e, i) => {
+      const s = parseSpan(e.date), [ic, kind] = XP_KIND[xpKind(e)] || XP_KIND.work;
+      const org = e.url ? `<a href="${esc(e.url)}" target="_blank" rel="noopener">${esc(e.org)} <span aria-hidden="true">↗</span></a>` : esc(e.org);
+      return `<li class="xp-item${s.current ? ' now' : ''}" style="--n:${i}">
+        <span class="xp-dot" aria-hidden="true"></span>
+        <div class="xp-head">
+          <div class="xp-what"><h3>${esc(e.role)}</h3><div class="xp-org">${org}</div></div>
+          <div class="xp-when">
+            <span class="xp-date">${esc(s.label)}</span>
+            <span class="xp-meta">${s.current ? '<span class="xp-live">● Current</span>' : ''}${s.dur ? `<span>${esc(s.dur)}</span>` : ''}<span class="xp-kind">${ic} ${kind}</span></span>
+          </div>
+        </div>
+        ${notes(e).length ? `<ul class="xp-pts">${notes(e).map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
+        <span class="xp-sha" title="commit hash, for the git fans">${hash7(e.role + e.org)}</span>
+      </li>`;
+    }).join('')}</ol>`;
   }
 
   /* contact */

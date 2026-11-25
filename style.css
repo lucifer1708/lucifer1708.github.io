@@ -408,6 +408,34 @@ a.cmd:hover { text-decoration: none; background: color-mix(in srgb, var(--accent
 }
 .rv-rel { color: var(--warn); font-size: .9em; }
 .rv-src { font-size: 11px; }
+.xp { list-style: none; margin: 0; padding: 4px 4px 4px 26px; position: relative; }
+.xp::before { content: ""; position: absolute; left: 9px; top: 14px; bottom: 14px; width: 2px; border-radius: 2px; background: linear-gradient(var(--accent), var(--accent2), transparent); opacity: .55; }
+.xp-item {
+  position: relative; margin: 0 0 14px; padding: 14px 16px 12px; border-radius: calc(var(--radius) * .7);
+  background: color-mix(in srgb, var(--fg) 5%, transparent); border: 1px solid color-mix(in srgb, var(--fg) 8%, transparent);
+  animation: lineIn .45s var(--ease-out) both; animation-delay: calc(var(--n) * 110ms);
+  transition: border-color .25s, background .25s;
+}
+.xp-item:hover { border-color: color-mix(in srgb, var(--accent) 50%, transparent); background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.xp-dot { position: absolute; left: -22px; top: 18px; width: 12px; height: 12px; border-radius: 50%; background: var(--bg); border: 2px solid var(--accent2); }
+.xp-item.now .xp-dot { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 0 0 var(--accent); animation: xpPulse 2s infinite; }
+@keyframes xpPulse { 70% { box-shadow: 0 0 0 8px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+.xp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 6px 16px; flex-wrap: wrap; }
+.xp-what h3 { margin: 0; font-size: 1.12em; line-height: 1.3; color: var(--fg); }
+.xp-org { margin-top: 2px; color: var(--accent2); font-weight: 700; }
+.xp-org a { color: inherit; text-decoration: none; }
+.xp-org a:hover { text-decoration: underline; }
+.xp-when { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-align: right; }
+.xp-date { font-weight: 700; color: var(--fg); white-space: nowrap; }
+.xp-meta { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; font-size: .85em; color: var(--dim); }
+.xp-live { color: var(--accent); font-weight: 800; }
+.xp-kind { padding: 0 7px; border-radius: 99px; background: color-mix(in srgb, var(--fg) 9%, transparent); color: var(--fg); }
+.xp-pts { margin: 10px 0 0; padding: 0 0 0 18px; line-height: 1.6; }
+.xp-pts li { margin: 2px 0; }
+.xp-pts li::marker { color: var(--accent); }
+.xp-sha { position: absolute; right: 12px; bottom: 6px; font-size: 10.5px; color: var(--warn); opacity: .35; }
+.xp-item:hover .xp-sha { opacity: .8; }
+@media (max-width: 900px) { .xp-when { align-items: flex-start; text-align: left; } .xp-meta { justify-content: flex-start; } }
 .commit { margin-bottom: 12px; animation: lineIn .4s var(--ease-out) both; animation-delay: calc(var(--n) * 110ms); }
 .graph, .sha { color: var(--warn); }
 .ref { color: var(--accent2); font-weight: 700; }
