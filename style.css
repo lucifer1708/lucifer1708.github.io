@@ -724,6 +724,19 @@ body.glitch #screens { filter: contrast(1.6) saturate(2) hue-rotate(-40deg); }
   #workspaces button.active em, #clock { display: none !important; }
   #workspaces button { padding: 0 9px; }
 }
+/* Phones/tablets: iOS Safari flickers when frosted-glass (backdrop-filter) layers
+   sit in a scrolling area over content that repaints every frame. Use solid glass
+   and stop the endless decorative animations there. */
+@media (max-width: 900px), (pointer: coarse) {
+  #bar, .win, .toast, #tip, #settings, #keys .k-box, #launcher .l-box {
+    backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+  }
+  .win { background: color-mix(in srgb, var(--win) max(var(--win-op), 94%), var(--bg)); }
+  #bar { background: color-mix(in srgb, var(--bg) 92%, transparent); }
+  .win.focus::before, #wall i, .big, .fetch .tux { animation: none !important; }
+  #wall i { filter: blur(60px); }
+  .big { filter: none; }
+}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }

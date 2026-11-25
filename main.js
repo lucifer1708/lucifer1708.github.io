@@ -489,8 +489,13 @@
 
   /* cava */
   let cavaT = 0;
+  let cavaSeen = true;
+  function watchCava() {
+    if (!('IntersectionObserver' in window)) return;
+    new IntersectionObserver(([e]) => { cavaSeen = e.isIntersecting; }).observe($('#cava'));
+  }
   function tickCava() {
-    if (curWs !== 1 || document.hidden) return;
+    if (curWs !== 1 || document.hidden || !cavaSeen) return;   // nothing to animate when the visualizer is off-screen
     cavaT += 0.2;
     $$('#cava i').forEach((b, i) => {
       const v = Math.abs(Math.sin(cavaT + i * 0.42) * Math.cos(cavaT * 0.37 + i * 0.13)) * 0.6 + Math.random() * 0.4;
@@ -1549,7 +1554,7 @@ Call Trace:
     gotoWs(fromHash ? fromHash.n : 1, true);
     tickBar(); setInterval(tickBar, 1000);
     setTimeout(tickHtop, 900); setInterval(tickHtop, 1800);
-    setInterval(tickCava, 95);
+    watchCava(); setInterval(tickCava, matchMedia('(pointer: coarse)').matches ? 190 : 95);
     setTimeout(() => notify(`Welcome, guest 👋`, `press <kbd>1</kbd>–<kbd>${WS_MAX}</kbd> or use the tabs up top to switch pages · <kbd>Alt+Space</kbd> launcher · <kbd>?</kbd> all keybinds · drag windows onto each other to swap`, 7000), 1400);
 
     print(`<span class="big">${esc(bigText(C.name))}</span>`);
