@@ -699,7 +699,9 @@ body.glitch #screens { filter: contrast(1.6) saturate(2) hue-rotate(-40deg); }
   .screen.active { display: flex; flex-direction: column; animation-name: fadeUp; }
   .screen.leaving { display: none; }
   @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } }
-  .tile { min-height: 260px; }
+  .tile { min-height: 260px; flex: none; }
+  .screen.active { min-height: 100%; box-sizing: border-box; }
+  .screen > .tile:last-child { flex: 1 0 auto; }   /* last window fills leftover height, no empty gap below */
   .t-term { min-height: 72vh; }
   .t-cava { min-height: 100px; }
   .t-fetch { order: -1; }
@@ -709,7 +711,7 @@ body.glitch #screens { filter: contrast(1.6) saturate(2) hue-rotate(-40deg); }
   #keys-btn, #wp-next { display: none; }
   #bar { gap: 6px; }
   .bar-left, .bar-right { gap: 4px; }
-  #ranger { grid-template-columns: 1fr; }
+  #ranger { grid-template-columns: 1fr; align-content: start; }
   #r-list { border-right: 0; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 12px; }
   #r-prev { padding: 0; }
   .hide-sm, #mem, #bar-title { display: none !important; }
