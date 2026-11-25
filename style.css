@@ -181,7 +181,7 @@ button.pill:hover { transform: translateY(-1px) scale(1.05); color: var(--fg); b
 #workspaces button { height: 28px; padding: 0 11px; font-size: 13px; }
 #fs-btn .fs-off, .page-fs #fs-btn .fs-on { display: none; }
 .page-fs #fs-btn .fs-off { display: block; }
-#bar-title { color: var(--fg); max-width: 22vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#bar-title { display: block; line-height: 32px; min-width: 0; flex: 0 1 auto; color: var(--fg); max-width: 22vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }   /* block, not flex: ellipsis only works on block boxes */
 @media (max-width: 1440px) { #bar-title { display: none; } }
 
 /* screens / tiling */
