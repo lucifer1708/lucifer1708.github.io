@@ -1003,6 +1003,8 @@
     '🔑 you found the secret file.', '',
     '  commands  → hack · hollywood · matrix · sl · flip · gravity · do a barrel roll · lolcat · hire',
     '              fortune | lolcat · sudo make me a sandwich · :(){ :|:& };: · xyzzy · lock',
+    '  classics  → yes · git blame · git push --force · npm install · touch grass · make love · please <cmd>',
+    '              docker run · kubectl delete pod · chmod 777 · shutdown · xeyes · weather · cat /dev/urandom · :q',
     '  mouse     → pet the penguin · click the >_ logo 5× fast · shake a window while dragging',
     '  keyboard  → ↑ ↑ ↓ ↓ ← → ← → b a',
     '  patience  → go idle for 90 seconds',
@@ -1093,6 +1095,8 @@
     pwd: { d: '', f() { print(`/home/${esc(USER)}${esc(cwd.slice(1))}`); } },
     cat: { d: 'print a file', f(a) {
       if (!a.length) return print('cat: missing operand. try: ' + cmdLink('cat about.md'), 'err');
+      if (a[0] === '/dev/urandom') return print(`<span class="dim">${esc(Array.from({ length: 6 }, () => Array.from({ length: 64 }, () => String.fromCharCode(33 + Math.random() * 94)).join('')).join('\n'))}</span>\n^C <span class="dim">that's enough chaos for one day.</span>`);
+      if (a[0] === '/dev/null') return print('<span class="dim">(the void stares back)</span>');
       for (const p of a) {
         const r = resolve(p);
         if (!r) print(`cat: ${esc(p)}: No such file or directory`, 'err');
@@ -1138,7 +1142,7 @@
       if (/rm\s+-(rf|fr)\s+\/(\s|$|\*)/.test(line)) return meltdown();
       print(`<span class="err">${esc(USER)} is not in the sudoers file. This incident will be reported. 🚨</span>`);
     } },
-    rm: { d: '', f(a, line) { /-(rf|fr)\s+\//.test(line) ? print('rm: it is dangerous to operate recursively on \'/\'. (nice try — use sudo 😈)', 'warn') : print('rm: permission denied. this portfolio is read-only.', 'err'); } },
+    rm: { d: '', f(a, line) { if (/node_modules/.test(line)) return print('freed 4.2 GB. 🌍 the planet thanks you.'); /-(rf|fr)\s+\//.test(line) ? print('rm: it is dangerous to operate recursively on \'/\'. (nice try — use sudo 😈)', 'warn') : print('rm: permission denied. this portfolio is read-only.', 'err'); } },
     vim: { d: '', f() { print('entering vim… you may never leave. opening about.md'); setTimeout(() => gotoWs(3), 500); } },
     emacs: { d: '', f() { print('emacs: command not found. this is a vim household.', 'warn'); } },
     nano: { d: '', f() { print('nano? respectable choice. still opening vim though.'); setTimeout(() => gotoWs(3), 600); } },
@@ -1159,7 +1163,7 @@
     hello: { d: '', f() { print(`hey there 👋 — I'm ${esc(C.name.split(' ')[0])}. type ${cmdLink('about')} or ${cmdLink('projects')}.`); } },
     coffee: { d: '', f() { print(esc('      ( (\n       ) )\n    ........\n    |      |]\n    \\      /\n     `----\'\n\nbrewing… ☕ productivity +40%')); } },
   };
-  const ALIASES = { reviews: 'testimonials', recommendations: 'testimonials', shortcuts: 'keys', keybinds: 'keys', hyprctl: 'settings', config: 'settings', wall: 'wallpaper', swww: 'wallpaper', ll: 'ls -la', la: 'ls -a', vi: 'vim', nvim: 'vim', hi: 'hello', apt: 'pacman', 'apt-get': 'pacman', yay: 'pacman', cls: 'clear', '?': 'help', git: 'experience', top: 'skills', htop: 'skills', email: 'contact', goto: 'ws', screenfetch: 'neofetch', fastfetch: 'neofetch' };
+  const ALIASES = { reviews: 'testimonials', recommendations: 'testimonials', shortcuts: 'keys', keybinds: 'keys', hyprctl: 'settings', config: 'settings', wall: 'wallpaper', swww: 'wallpaper', ll: 'ls -la', la: 'ls -a', vi: 'vim', nvim: 'vim', hi: 'hello', apt: 'pacman', 'apt-get': 'pacman', yay: 'pacman', cls: 'clear', '?': 'help', top: 'skills', htop: 'skills', email: 'contact', goto: 'ws', screenfetch: 'neofetch', fastfetch: 'neofetch' };
 
   /* ═════════════ easter eggs ═════════════ */
   function confetti(n = 180, x = innerWidth / 2, y = innerHeight / 3) {
@@ -1306,6 +1310,88 @@
     locked = false; bumpIdle();
   }
 
+  /* more hidden jokes for people who type real commands */
+  async function progress(label, steps = 24, ms = [15, 60]) {
+    const l = print();
+    for (let i = 0; i <= steps; i++) {
+      l.innerHTML = `${label} [<span class="accent">${'#'.repeat(i)}</span>${'.'.repeat(steps - i)}] ${String(Math.round((i / steps) * 100)).padStart(3)}%`;
+      scrollTerm(); await sleep(rand(...ms));
+    }
+  }
+  function xeyes() {
+    if ($('#xeyes')) return print('xeyes: already watching you 👀', 'dim');
+    const box = document.createElement('div');
+    box.id = 'xeyes'; box.title = 'click to close';
+    box.innerHTML = '<i><b></b></i><i><b></b></i>';
+    document.body.appendChild(box);
+    const pupils = [...box.querySelectorAll('b')];
+    const look = (e) => pupils.forEach((p) => {
+      const r = p.parentElement.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      const a = Math.atan2(e.clientY - cy, e.clientX - cx), d = Math.min(r.width / 4.2, Math.hypot(e.clientX - cx, e.clientY - cy) / 6);
+      p.style.transform = `translate(${Math.cos(a) * d}px, ${Math.sin(a) * d}px)`;
+    });
+    addEventListener('pointermove', look);
+    const bye = () => { removeEventListener('pointermove', look); box.remove(); };
+    box.onclick = bye; setTimeout(bye, 30000);
+    print('xeyes: watching your cursor for 30s 👀 <span class="dim">(click the eyes to close)</span>');
+  }
+  const FUN_CMDS = {
+    yes: { d: '', async f(a) {
+      const w = a.join(' ') || 'y', l = print();
+      for (let i = 1; i <= 40; i++) { l.textContent = Array(i).fill(w).join('\n'); scrollTerm(); await sleep(25); }
+      print('^C <span class="dim">ok ok, I get it. you agree.</span>');
+    } },
+    rev: { d: '', f(a) { print(esc([...(a.join(' ') || 'racecar — still racecar')].reverse().join(''))); } },
+    who: { d: '', f() { print(`${esc(USER)}    tty1    ${new Date().toISOString().slice(0, 16).replace('T', ' ')}\ntux      pts/0   always <span class="dim">(the penguin never logs out)</span>`); } },
+    w: { d: '', f() { CMDS.who.f(); } },
+    kill: { d: '', f(a) { print(a.length ? `kill: (${esc(a[a.length - 1])}) — you can't kill an idea. or a portfolio.` : 'kill: usage: kill [-s sigspec | -n signum | -sigspec] pid', a.length ? '' : 'err'); } },
+    killall: { d: '', f(a) { print(`killall ${esc(a.join(' ') || 'bugs')}: no process found. <span class="dim">(the bugs are hiding in prod)</span>`); } },
+    shutdown: { d: '', async f() {
+      print('Broadcast message from root@' + esc(HOST) + ':\n<span class="warn">The system is going down for poweroff NOW!</span>');
+      await sleep(1200); shake(300);
+      print('…just kidding. this portfolio has 100% uptime. try ' + cmdLink('reboot') + ' if you insist.');
+    } },
+    chmod: { d: '', f(a) { print(/777/.test(a.join(' ')) ? '<span class="warn">chmod 777?!</span> a security engineer somewhere just felt a disturbance.' : `chmod: changing permissions of '${esc(a[a.length - 1] || 'portfolio')}': Operation not permitted`); } },
+    touch: { d: '', f(a) { print(/^grass$/i.test(a.join(' ')) ? "touch: cannot touch 'grass': No such file or directory\n<span class=\"dim\">(you have been online too long. go outside 🌱)</span>" : `touch: cannot touch '${esc(a[0] || '')}': Read-only file system`); } },
+    git: { d: '', async f(a) {
+      const sub = (a[0] || '').toLowerCase(), rest = a.slice(1).join(' ');
+      if (sub === 'blame') return print(`<span class="warn">${hash7('blame')}</span> (<span class="accent2">${esc(C.name)}</span> 2 minutes ago) <span class="dim">— it was me. it's always me.</span>`);
+      if (sub === 'push' && /--force|-f\b/.test(rest)) { shake(400); return print('<span class="err">! [rejected] main -&gt; main (your teammates)</span>\n<span class="dim">hint: force-pushing to main is how friendships end.</span>'); }
+      if (sub === 'push') return print('Everything up-to-date. <span class="dim">(unlike my resume PDF)</span>');
+      if (sub === 'commit') return print(`[main ${hash7(String(Date.now()))}] ${esc(rest.replace(/^-m\s*/, '').replace(/^["']|["']$/g, '') || 'fix stuff')}\n 1 file changed, 1 insertion(+), 1 deletion(-) <span class="dim">— the classic</span>`);
+      if (sub === 'status') return print('On branch main\nYour branch is up to date with \'origin/main\'.\n\nnothing to commit, working tree clean <span class="dim">(first time ever)</span>');
+      if (sub === 'log' || !sub) return CMDS.experience.f();
+      print(`git: '${esc(sub)}' is not a git command. See 'git --help'. <span class="dim">try git log, blame, status, push</span>`, 'err');
+    } },
+    npm: { d: '', async f(a) {
+      if (!/^(i|install|ci)$/.test(a[0] || '')) return print('npm ERR! missing script. <span class="dim">(npm ERR! is a lifestyle)</span>');
+      await progress('downloading half the internet', 28);
+      print(`added 1,337 packages, and audited 1,338 packages in 42s\n\n<span class="warn">69 vulnerabilities</span> (4 low, 20 moderate, 45 high)\n<span class="dim">node_modules is now heavier than the sun ☀️</span>`);
+    } },
+    docker: { d: '', async f(a) {
+      if (a[0] === 'run') { await progress('pulling layers', 16); return print(`container ${hash7('ctr' + Date.now())}${hash7('x')} started.\n<span class="dim">it works on my machine. now we ship my machine. 🐳</span>`); }
+      print('CONTAINER ID   IMAGE          STATUS          NAMES\n' + C.projects.slice(0, 4).map((p) => `${hash7(p.slug)}${hash7(p.name).slice(0, 5)}   ${p.slug.slice(0, 13).padEnd(13)}  Up ${(Math.random() * 90 + 1) | 0} days     ${p.slug}`).join('\n'));
+    } },
+    kubectl: { d: '', f(a) {
+      if (a[0] === 'delete') return print(`pod "${esc(a[2] || 'api-7f9c')}" deleted\n<span class="dim">…it came back. they always come back. (ReplicaSet says hi)</span>`);
+      print('NAME                 READY   STATUS             RESTARTS\napi-7f9c-x2kq1        1/1     Running            0\nindexer-5d8b-p9zz     1/1     Running            0\nmotivation-0          0/1     <span class="err">CrashLoopBackOff</span>   42');
+    } },
+    ssh: { d: '', f(a) { print(`ssh: connect to host ${esc(a[0] || 'localhost')}: you're already inside. there is no outside. 🐧`); } },
+    please: { d: '', async f(a, line) {
+      const rest = line.replace(/^please\s*/i, '');
+      if (!rest) return print('please what? <span class="dim">(manners appreciated, though)</span>');
+      print('<span class="dim">since you asked so nicely…</span>');
+      await run(rest.replace(/^sudo\s+/, ''), false);
+    } },
+    ':q': { d: '', f() { print("you're not in vim. but respect for the reflex. 🫡"); } },
+    ':wq': { d: '', f() { print("nothing to save. you're not in vim. (old habits, huh?)"); } },
+    ':q!': { d: '', f() { print('E37: No write since last change… just kidding, this is zsh.'); } },
+    weather: { d: '', f() { print(`Weather report: ${esc(C.location || 'here')}\n\n     \\   /     Sunny with a chance of merge conflicts\n      .-.      23 °C\n   ― (   ) ―   ↗ 7 km/h of deadline pressure\n      \`-'      10 km visibility (on the roadmap)\n     /   \\     0.0 mm of bugs (allegedly)`); } },
+    cmatrix: { d: '', f() { matrix(); } },
+    figlet: { d: '', f(a) { print(bigHTML(a.join(' ') || C.name)); } },
+    xeyes: { d: '', f: xeyes },
+    whoareyou: { d: '', f() { print(`${esc(C.name)} — ${esc(C.role)}. type ${cmdLink('about')} for the long version.`); } },
+  };
   const EGG_CMDS = {
     flip: { d: '', f: tableFlip },
     tableflip: { d: '', f: tableFlip },
@@ -1313,7 +1399,7 @@
     barrelroll: { d: '', f: barrelRoll },
     gravity: { d: '', f: gravity },
     lolcat: { d: '', f(a) { print(rainbow(a.join(' ') || 'taste the rainbow 🌈')); } },
-    make: { d: '', f(a) { print(/^me a sandwich$/i.test(a.join(' ')) ? 'What? Make it yourself.' : 'make: *** No targets specified and no makefile found.  Stop.'); } },
+    make: { d: '', f(a) { print(/^me a sandwich$/i.test(a.join(' ')) ? 'What? Make it yourself.' : /^love$/i.test(a.join(' ')) ? "make: *** No rule to make target 'love'.  Not war?" : /^coffee$/i.test(a.join(' ')) ? 'make: coffee is a runtime dependency, not a build target. ☕' : 'make: *** No targets specified and no makefile found.  Stop.'); } },
     xyzzy: { d: '', f() { print('Nothing happens.'); } },
     42: { d: '', f() { print('The answer. Now… what was the question?'); } },
     hire: { d: '', f() {
@@ -1327,7 +1413,7 @@
     confetti: { d: '', f() { confetti(); } },
   };
 
-  Object.assign(CMDS, EGG_CMDS);
+  Object.assign(CMDS, EGG_CMDS, FUN_CMDS);
   Object.assign(ALIASES, { hyprlock: 'lock', cmatrix: 'matrix', party: 'confetti', rainbow: 'lolcat' });
 
   async function run(raw, echo = true) {
