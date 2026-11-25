@@ -12,11 +12,13 @@
   const KERNEL = '6.9.420-portfolio';
   const THEMES = ['matrix', 'amber', 'vampire', 'arctic', 'retro', 'cyberpunk'];
   const WS = [
-    { n: 1, name: 'term', title: `${USER}@${HOST}: ~` },
+    { n: 1, name: 'home', alias: 'term', title: `${USER}@${HOST}: ~` },
     { n: 2, name: 'projects', title: 'ranger ~/projects' },
-    { n: 3, name: 'about', title: 'nvim ~/about.md' },
-    { n: 4, name: 'contact', title: '~/contact.sh' },
+    { n: 3, name: 'experience', alias: 'about', title: 'nvim ~/about.md' },
+    { n: 4, name: 'testimonials', title: 'cat ~/testimonials.txt' },
+    { n: 5, name: 'contact', title: '~/contact.sh' },
   ];
+  const WS_MAX = WS.length;
 
   const hash7 = (str) => {
     let h = 2166136261;
@@ -232,8 +234,8 @@
   }
 
   /* ═════════════ desktop building ═════════════ */
-  const win = (title, body, cls = '') =>
-    `<div class="win ${cls}"><div class="win-bar" title="drag onto another window to swap · Shift+drag to float · double-click to fullscreen / re-tile"><span class="dots"><i></i><i></i><i></i></span><span class="win-name">${esc(title)}</span><span class="fs-hint">drag swap · ⇧drag float · dbl-click ⛶</span></div><div class="win-body">${body}</div><span class="rz" title="drag to resize"></span></div>`;
+  const win = (title, body, cls = '', tag = '') =>
+    `<div class="win ${cls}"><div class="win-bar" title="drag onto another window to swap · Shift+drag to float · double-click to fullscreen / re-tile"><span class="dots"><i></i><i></i><i></i></span>${tag ? `<span class="win-tag">${esc(tag)}</span>` : ''}<span class="win-name">${esc(title)}</span><span class="fs-hint">drag swap · ⇧drag float · dbl-click ⛶</span></div><div class="win-body">${body}</div><span class="rz" title="drag to resize"></span></div>`;
 
   const TUX = [
     '        .--.',
@@ -262,11 +264,19 @@
       '',
       `<span class="blocks">${['--bg', '--err', '--accent', '--warn', '--accent2', '--dim', '--border', '--fg'].map((v, i) => `<i style="background:var(${v});--n:${i}"></i>`).join('')}</span>`,
     ];
-    return `<div class="fetch"><pre class="tux">${esc(TUX.join('\n'))}</pre><pre class="info">${info.join('\n')}</pre></div>`;
+    const jobs = C.experience.filter((e) => !/b\.tech|degree|school/i.test(e.role)).length;
+    const go = [
+      [2, '📂', 'Projects', `${C.projects.length} builds`],
+      [3, '💼', 'Experience', `${jobs} roles`],
+      [4, '💬', 'Testimonials', `${(C.testimonials || []).length} recommendations`],
+      [5, '✉️', 'Contact', 'hire / say hi'],
+    ];
+    const nav = `<nav class="qnav" aria-label="sections">${go.map(([n, ic, t, s], i) => `<button data-go="${n}" style="--n:${i}" title="open ${t.toLowerCase()} — or press ${n}"><span class="q-ic">${ic}</span><span class="q-t"><b>${t}</b><small>${esc(s)}</small></span><kbd>${n}</kbd></button>`).join('')}</nav>`;
+    return `${nav}<div class="fetch"><pre class="tux">${esc(TUX.join('\n'))}</pre><pre class="info">${info.join('\n')}</pre></div>`;
   }
 
   function buildDesktop() {
-    $('#workspaces').innerHTML = WS.map((w) => `<button data-ws="${w.n}" title="Workspace ${w.n} · ${w.name} — press ${w.n} or Alt+${w.n} · Alt+←/→ cycles">${w.n}<em>${w.name}</em></button>`).join('');
+    $('#workspaces').innerHTML = WS.map((w) => `<button data-ws="${w.n}" title="${w.name} — press ${w.n} or Alt+${w.n} · Alt+←/→ cycles">${w.n}<em>${w.label || w.name}</em></button>`).join('');
     $('#wall .wm-name').textContent = C.handle;
     $('#launch-btn').onclick = logoClick;
     $('#power').onclick = () => runInTerm('reboot');
@@ -277,26 +287,29 @@
     $('#screens').innerHTML = `
       <section class="screen" data-ws="1">
         <div class="tile t-term">${win(`${USER}@${HOST}: ~ — zsh`, `<div id="term"><div id="term-out"></div><div id="term-line"><span id="prompt"></span><input id="term-in" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="terminal input"></div></div>`, 'win-term')}</div>
-        <div class="tile t-fetch">${win('neofetch', neofetchHTML())}</div>
+        <div class="tile t-fetch">${win('neofetch', neofetchHTML(), '', 'start here')}</div>
         <div class="tile t-top">${win('htop — skills', '<div id="htop"></div>')}</div>
         <div class="tile t-cava">${win('cava ♪ lofi beats to code to', '<div id="cava"></div>')}</div>
       </section>
       <section class="screen" data-ws="2">
-        <div class="tile">${win('ranger ~/projects', '<div id="ranger"><ul id="r-list"></ul><div id="r-prev"></div></div>')}</div>
+        <div class="tile">${win('ranger ~/projects', '<div id="ranger"><ul id="r-list"></ul><div id="r-prev"></div></div>', '', 'projects')}</div>
       </section>
       <section class="screen" data-ws="3">
-        <div class="tile">${win('nvim ~/about.md', '<div id="vim"></div>')}</div>
-        <div class="tile">${win('git log --graph --oneline career', '<div id="gitlog"></div>')}</div>
-        <div class="tile">${win('cat ~/testimonials.txt', '<div id="reviews"></div>')}</div>
+        <div class="tile">${win('git log --graph --oneline career', '<div id="gitlog"></div>', '', 'experience')}</div>
+        <div class="tile">${win('nvim ~/about.md', '<div id="vim"></div>', '', 'about me')}</div>
       </section>
       <section class="screen" data-ws="4">
-        <div class="tile">${win('~/contact.sh', '<div id="contact"></div>')}</div>
-        <div class="tile">${win('~/msg.sh — write me', '<div id="mail"></div>')}</div>
+        <div class="tile">${win('cat ~/testimonials.txt', '<div id="reviews"></div>', '', 'testimonials')}</div>
+      </section>
+      <section class="screen" data-ws="5">
+        <div class="tile">${win('~/contact.sh', '<div id="contact"></div>', '', 'contact')}</div>
+        <div class="tile">${win('~/msg.sh — write me', '<div id="mail"></div>', '', 'message')}</div>
         <div class="tile">${win('fortune | cowsay', '<pre id="cow" title="click for another fortune"></pre>')}</div>
       </section>`;
     buildHtop(); buildRanger(); buildVim(); buildGit(); buildContact(); buildReviews(); newFortune();
     $('#cava').innerHTML = '<i></i>'.repeat(36);
     $('#cow').onclick = newFortune;
+    $('.qnav').onclick = (e) => { const b = e.target.closest('[data-go]'); if (b) gotoWs(+b.dataset.go); };
     $$('.screen').forEach((s) => $$('.tile', s).forEach((t, i) => {
       t.style.setProperty('--i', i);
       setSlot(t, i);
@@ -554,7 +567,7 @@
   }
 
   const KEYS = [
-    ['1 … 4  /  Alt+1 … 4', 'jump between workspaces (pages)'],
+    [`1 … ${WS_MAX}  /  Alt+1 … ${WS_MAX}`, 'jump between pages: ' + WS.map((w) => `${w.n} ${w.label || w.name}`).join(' · ')],
     ['Alt+←/→', 'previous / next workspace'],
     ['Alt+Space · ⌘K · /', 'launcher — search everything'],
     ['Alt+S', 'settings: blur, corners, gaps, theme'],
@@ -571,7 +584,7 @@
   ];
   function openKeys() {
     const K = $('#keys');
-    $('#k-list').innerHTML = KEYS.map(([k, d], i) => `<div class="k-row" style="--i:${i}"><span>${kbd(k).replace(/(^|[ ·/])([1-4jk?/]|…)(?=$|[ ·/])/g, '$1<kbd>$2</kbd>')}</span><span class="dim">${esc(d)}</span></div>`).join('');
+    $('#k-list').innerHTML = KEYS.map(([k, d], i) => `<div class="k-row" style="--i:${i}"><span>${kbd(k).replace(/(^|[ ·/])([1-9jk?/]|…)(?=$|[ ·/])/g, '$1<kbd>$2</kbd>')}</span><span class="dim">${esc(d)}</span></div>`).join('');
     K.hidden = false;
     requestAnimationFrame(() => K.classList.add('open'));
   }
@@ -583,7 +596,7 @@
   const keysOpen = () => $('#keys').classList.contains('open');
 
   const TIPS = [
-    'Press <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd> (or <kbd>Alt</kbd>+number) to switch between pages.',
+    `Press ${WS.map((w) => `<kbd>${w.n}</kbd>`).join(' ')} (or <kbd>Alt</kbd>+number) or click the tabs up top: ${WS.map((w) => w.name).join(' · ')}.`,
     'Drag a window by its title bar onto another window to rearrange the tiling.',
     'Open ⚙ settings (<kbd>Alt+S</kbd>) to change blur, corner radius, gaps and theme.',
     'Press <kbd>?</kbd> any time for the full keybind cheatsheet.',
@@ -947,7 +960,7 @@
   const CMDS = {
     help: { d: 'list available commands', f() {
       const rows = Object.entries(CMDS).filter(([, c]) => c.d).map(([k, c]) => `  ${cmdLink(k)}${' '.repeat(Math.max(1, 12 - k.length))}<span class="dim">${esc(c.d)}</span>`);
-      print(`<b>Available commands</b> <span class="dim">(click or type)</span>\n${rows.join('\n')}\n\n<span class="dim">Tab autocompletes · ↑/↓ history · Ctrl+L clear · Alt+1..4 / Alt+←→ workspaces · Alt+Space launcher · Alt+F fullscreen · drag a title bar onto another window to swap, Shift+drag to float, Alt+T re-tile · there are hidden commands 👀</span>`);
+      print(`<b>Available commands</b> <span class="dim">(click or type)</span>\n${rows.join('\n')}\n\n<span class="dim">Tab autocompletes · ↑/↓ history · Ctrl+L clear · Alt+1..${WS_MAX} / Alt+←→ workspaces · Alt+Space launcher · Alt+F fullscreen · drag a title bar onto another window to swap, Shift+drag to float, Alt+T re-tile · there are hidden commands 👀</span>`);
     } },
     about: { d: 'who is this person', f() { CMDS.cat.f(['~/about.md']); } },
     whoami: { d: 'print effective user', f() { print(`${esc(USER)}  <span class="dim"># ${esc(C.name)} — ${esc(C.role)}, ${esc(C.location)}</span>`); } },
@@ -1033,7 +1046,7 @@
     cowsay: { d: 'cowsay [text]', f(a) { print(esc(cowsay(a.join(' ') || fortune()))); } },
     fortune: { d: 'random wisdom', f() { print(esc(fortune())); } },
     banner: { d: 'banner <text>', f(a) { print(`<span class="big">${esc(bigText(a.join(' ') || C.name))}</span>`); } },
-    ws: { d: 'switch workspace: ws <1-4>', f(a) { if (!gotoWs(a[0])) print('usage: ws <1-4>  (' + WS.map((w) => `${w.n}:${w.name}`).join(' ') + ')', 'err'); } },
+    ws: { d: `switch workspace: ws <1-${WS_MAX}>`, f(a) { if (!gotoWs(a[0])) print(`usage: ws <1-${WS_MAX}>  (` + WS.map((w) => `${w.n}:${w.name}`).join(' ') + ')', 'err'); } },
     history: { d: '', f() { print(hist.map((h, i) => `${String(i + 1).padStart(4)}  ${esc(h)}`).join('\n')); } },
     echo: { d: '', f(a) { print(esc(a.join(' ').replace(/\$USER/g, USER).replace(/\$HOME/g, '/home/' + USER))); } },
     date: { d: '', f() { print(esc(new Date().toString())); } },
@@ -1235,7 +1248,7 @@
       confetti(240);
       print(`<span class="big">${esc(bigText('HIRED!'))}</span>`);
       print(`excellent decision. let's talk → ${cmdLink('contact')}`);
-      setTimeout(() => gotoWs(4), 1600);
+      setTimeout(() => gotoWs(WS_MAX), 1600);
     } },
     lock: { d: '', f() { setTimeout(lockScreen, 200); } },
     confetti: { d: '', f() { confetti(); } },
@@ -1421,7 +1434,7 @@ Call Trace:
       if (launcherOpen()) return;
       kIdx = e.key === KONAMI[kIdx] ? kIdx + 1 : e.key === KONAMI[0] ? 1 : 0;
       if (kIdx === KONAMI.length) { kIdx = 0; toggleParty(); }
-      if (e.altKey && /^Digit[1-4]$/.test(e.code)) { e.preventDefault(); gotoWs(+e.code.slice(5)); return; }
+      if (e.altKey && /^Digit[1-9]$/.test(e.code)) { e.preventDefault(); gotoWs(+e.code.slice(5)); return; }
       if (e.altKey && e.code === 'KeyF') { e.preventDefault(); toggleFs(focusedTile()); return; }
       if (e.altKey && e.code === 'KeyT') { e.preventDefault(); retile(); return; }
       if (e.altKey && e.code === 'KeyW') { e.preventDefault(); setWallpaper(undefined, true); return; }
@@ -1434,7 +1447,7 @@ Call Trace:
       if (ae === inp() || ae?.matches?.('input, textarea, select, [contenteditable]')) return;
       if (e.key === '?') { e.preventDefault(); openKeys(); return; }
       if (e.key === '/') { e.preventDefault(); openLauncher(); return; }
-      if (/^[1-4]$/.test(e.key)) { gotoWs(+e.key); return; }
+      if (/^[1-9]$/.test(e.key)) { gotoWs(+e.key); return; }
       if (curWs === 2) {
         if (e.key === 'j' || e.key === 'ArrowDown') { e.preventDefault(); selectProject(rSel + 1); }
         else if (e.key === 'k' || e.key === 'ArrowUp') { e.preventDefault(); selectProject(rSel - 1); }
@@ -1477,20 +1490,20 @@ Call Trace:
     bumpIdle();
     console.log('%c>_ hey there, fellow dev', 'font:800 20px monospace;color:#39ff14;text-shadow:0 0 8px #39ff14');
     console.log('%cLike poking around in devtools? So do I. Type `hire` in the terminal 😉', 'font:13px monospace;color:#00e5ff');
-    const fromHash = WS.find((w) => '#' + w.name === location.hash);
+    const fromHash = WS.find((w) => location.hash === '#' + w.name || (w.alias && location.hash === '#' + w.alias));
     gotoWs(fromHash ? fromHash.n : 1, true);
     tickBar(); setInterval(tickBar, 1000);
     setTimeout(tickHtop, 900); setInterval(tickHtop, 1800);
     setInterval(tickCava, 95);
-    setTimeout(() => notify(`Welcome, guest 👋`, `press <kbd>1</kbd>–<kbd>4</kbd> to switch pages · <kbd>Alt+Space</kbd> launcher · <kbd>?</kbd> all keybinds · drag windows onto each other to swap`, 7000), 1400);
+    setTimeout(() => notify(`Welcome, guest 👋`, `press <kbd>1</kbd>–<kbd>${WS_MAX}</kbd> or use the tabs up top to switch pages · <kbd>Alt+Space</kbd> launcher · <kbd>?</kbd> all keybinds · drag windows onto each other to swap`, 7000), 1400);
 
     print(`<span class="big">${esc(bigText(C.name))}</span>`);
     print(`Welcome to <b class="accent">PortfolioOS 1.0 LTS</b> (GNU/Linux ${KERNEL} x86_64)
 
  <span class="accent">*</span> ${esc(C.role)} · ${esc(C.location)}
  <span class="accent">*</span> ${esc(C.tagline)}
- <span class="accent">*</span> Pages: press <b>1</b>–<b>4</b> (or Alt+1–4) · <b>?</b> shows every keybind · hover anything for hints
- <span class="accent">*</span> Quick start: ${cmdLink('about')} ${cmdLink('projects')} ${cmdLink('skills')} ${cmdLink('experience')} ${cmdLink('contact')} ${cmdLink('theme')}
+ <span class="accent">*</span> Pages: ${WS.map((w) => `<b>${w.n}</b> ${w.label || w.name}`).join(' · ')} — press the number or click the tabs up top
+ <span class="accent">*</span> Quick start: ${cmdLink('projects')} ${cmdLink('experience')} ${cmdLink('testimonials')} ${cmdLink('about')} ${cmdLink('skills')} ${cmdLink('contact')}
 `);
     await sleep(700);
     if (curWs === 1 && !busy) await typeCmd('help');

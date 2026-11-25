@@ -59,11 +59,12 @@ To change which colours or search terms each theme uses, edit `THEMES` in the sc
 - **Shift+drag** floats a window so it can sit anywhere in the workspace. It tilts while you move it. Drag the bottom-right corner to resize a window, which also floats it. Double-click a floating window's title bar, press **Alt+T**, or run `tile` to snap it back into the tiling.
 
 - Boot sequence with a fake kernel log, systemd `[ OK ]` lines and an auto-typed login. Press any key to skip. It plays once per tab session.
-- Four workspaces in an i3/polybar-style layout: `1 term`, `2 projects` (ranger), `3 about` (nvim and git log), `4 contact`.
-  Switch with **1–4**, **Alt+1..4**, the top bar, or the `ws <n>` command. Deep links work too: `#projects`, `#about`, `#contact`.
+- Five workspaces in an i3/polybar-style layout: `1 home`, `2 projects` (ranger), `3 experience` (git log and nvim about.md), `4 testimonials`, `5 contact`.
+  The top bar always shows each page's name, every window has a section tag in its title bar, and the home page has big buttons that jump to projects, experience, testimonials and contact.
+  Switch with **1–5**, **Alt+1..5**, the top bar, or the `ws <n>` command. Deep links work too: `#projects`, `#experience`, `#testimonials`, `#contact` (old `#about` and `#term` links still work).
 - **Settings panel** (⚙ in the bar, **Alt+S**, or `settings`). It has sliders for window blur, opacity, corner radius, gaps, border size, font size, animation speed, and wallpaper dim and blur. It also has theme swatches and on/off switches for CRT, wallpaper, animated borders, focus-follows-mouse, tooltips and the idle lock screen. Settings are saved in the browser.
 - **Contact workspace** shows a status card with your live local time (set `status`, `timezone` and `replyTime` in `config.js`). Each link has a copy button and glitches on hover. A compose window opens a prefilled email draft in the visitor's mail app.
-- **Hints**: styled tooltips appear on hover. **?** opens a keybind cheatsheet. First-time visitors get a few tip notifications, starting with how to switch pages with 1–4.
+- **Hints**: styled tooltips appear on hover. **?** opens a keybind cheatsheet. First-time visitors get a few tip notifications, starting with how to switch pages with 1–5.
 - Interactive terminal with tab completion, history (↑/↓), Ctrl+L, Ctrl+C, a virtual filesystem (`ls -la`, `cd`, `cat`) and clickable commands.
 - Six themes: `theme matrix | amber | vampire | arctic | retro | cyberpunk`. The choice is saved.
 - CRT scanlines and flicker. Turn them off or on with `crt`.
