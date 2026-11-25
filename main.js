@@ -60,7 +60,7 @@
   ];
   const TOGGLES = [
     { k: 'crt', label: 'CRT scanlines', def: localStorage.getItem('crt') !== 'off', apply: (v) => html.classList.toggle('no-crt', !v) },
-    { k: 'wall', label: 'wallhaven wallpaper', def: true, apply: (v, init) => {
+    { k: 'wall', label: 'wallpaper', def: true, apply: (v, init) => {
       if (!v) { $$('#wall .wp').forEach((x) => x.remove()); html.classList.remove('has-wall'); }
       else if (!init) setWallpaper();
     } },
@@ -571,7 +571,7 @@
     ['Alt+←/→', 'previous / next workspace'],
     ['Alt+Space · ⌘K · /', 'launcher — search everything'],
     ['Alt+S', 'settings: blur, corners, gaps, theme'],
-    ['Alt+W', 'next wallhaven wallpaper'],
+    ['Alt+W', 'next wallpaper'],
     ['drag title bar', 'drop onto another window to swap'],
     ['Shift+drag', 'float a window anywhere'],
     ['drag corner', 'resize (floats the window)'],
