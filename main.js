@@ -138,6 +138,9 @@
     setTimeout(() => { if (!el.classList.contains('open')) el.hidden = true; }, 600 * dur());
   }
   const toggleSettings = () => (settingsOpen() ? closeSettings() : openSettings());
+  document.addEventListener('pointerdown', (e) => {   // click outside the panel closes it
+    if (settingsOpen() && !e.target.closest('#settings, #st-btn')) closeSettings();
+  });
 
   /* ═════════════ big ascii font ═════════════ */
   const FONT = {
